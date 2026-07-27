@@ -1,0 +1,98 @@
+'use client';
+
+import Link from 'next/link';
+import { useState } from 'react';
+import { ContentAsset } from '@/lib/types';
+
+export default function AssetsPage() {
+  const [assets] = useState<ContentAsset[]>([
+    {
+      id: '1',
+      campaignId: '1',
+      type: 'pillar',
+      name: 'Complete Guide to Plumbing Services',
+      status: 'draft',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      id: '2',
+      campaignId: '1',
+      type: 'companion',
+      name: 'Plumbing Repair vs Replacement',
+      status: 'readyForApproval',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      id: '3',
+      campaignId: '1',
+      type: 'companion',
+      name: 'Common Plumbing Issues',
+      status: 'approved',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+  ]);
+
+  const statusBadge = (status: string) => {
+    const colors: Record<string, string> = {
+      draft: 'bg-yellow-100 text-yellow-800',
+      readyForApproval: 'bg-blue-100 text-blue-800',
+      approved: 'bg-green-100 text-green-800',
+      published: 'bg-purple-100 text-purple-800',
+    };
+    return colors[status] || 'bg-slate-100 text-slate-800';
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-slate-900">Content Assets</h1>
+        <p className="text-slate-600 mt-2">View and manage all generated content assets</p>
+      </div>
+
+      <div className="space-y-4">
+        {assets.map((asset) => (
+          <div key={asset.id} className="bg-white rounded-lg shadow-sm p-6 border border-slate-200 hover:shadow-md transition">
+            <div className="flex justify-between items-start">
+              <Link href={`/assets/${asset.id}`} className="flex-1 group">
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl">{asset.type === 'pillar' ? '📄' : '📑'}</span>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900 group-hover:text-blue-600">{asset.name}</h3>
+                    <p className="text-sm text-slate-600">
+                      Type: <span className="font-medium">{asset.type}</span> | Campaign: {asset.campaignId}
+                    </p>
+                  </div>
+                </div>
+              </Link>
+              <span className={`px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap ${statusBadge(asset.status)}`}>
+                {asset.status.replace(/([A-Z])/g, ' $1').trim()}
+              </span>
+            </div>
+            <div className="mt-4 flex gap-4">
+              <Link
+                href={`/assets/${asset.id}`}
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+              >
+                View / Edit
+              </Link>
+              {asset.status !== 'published' && (
+                <button className="text-slate-600 hover:text-slate-900 text-sm font-medium">
+                  Delete
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {assets.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-slate-600 text-lg">No assets yet</p>
+        </div>
+      )}
+    </div>
+  );
+}
