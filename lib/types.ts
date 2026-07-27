@@ -101,22 +101,6 @@ export interface Run {
   linkUrl?: string;
 }
 
-export interface ResearchRun {
-  id: string;
-  campaignId: string;
-  status: 'queued' | 'running' | 'completed' | 'failed';
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface PainPoint {
-  id: string;
-  clientId: string;
-  name: string;
-  description: string;
-  createdAt: string;
-  updatedAt: string;
-}
 
 export interface StrategyBrief {
   id: string;
@@ -170,4 +154,92 @@ export interface PaginatedResponse<T> {
   totalCount: number;
   pageNumber: number;
   pageSize: number;
+}
+
+// Phase 1: Research & Intelligence
+export type EvidenceSupportLevel =
+  | 'VerifiedClientFact'
+  | 'VerifiedExternalSource'
+  | 'ObservedMarketLanguage'
+  | 'Unsupported';
+
+export interface ResearchRun {
+  id: string;
+  campaignId: string;
+  keyword: string;
+  status: 'queued' | 'running' | 'completed' | 'failed' | 'completed-with-partial-coverage';
+  discoveredSourceCount: number;
+  spentBudget: number;
+  maxBudget: number;
+  errorMessage?: string;
+  createdAt: string;
+  startedAt?: string;
+  completedAt?: string;
+}
+
+export interface ResearchSource {
+  id: string;
+  researchRunId: string;
+  sourceType: 'ExistingInternal' | 'OperatorUploaded' | 'AgentDiscoveredExternal';
+  url?: string;
+  title: string;
+  description?: string;
+  createdAt: string;
+}
+
+export interface ResearchEvidence {
+  id: string;
+  researchSourceId: string;
+  statement: string;
+  supportLevel: EvidenceSupportLevel;
+  approvedForClaim: boolean;
+  confidence: number; // 0-100
+  createdAt: string;
+}
+
+export interface PainPoint {
+  id: string;
+  clientId: string;
+  name: string;
+  description: string;
+  readerSymptom: string;
+  costOfInaction: string;
+  offerTerminology: string;
+  objections: string[];
+  confidence: number; // 0-100
+  staleSince?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PainPointEvidenceLink {
+  id: string;
+  painPointId: string;
+  researchEvidenceId: string;
+  dimension: 'reader' | 'symptom' | 'cost' | 'offer' | 'objection';
+  createdAt: string;
+}
+
+export interface ReconciliationProposal {
+  id: string;
+  researchRunId: string;
+  proposalType: 'new-pain-point' | 'update-pain-point' | 'new-evidence-link';
+  painPointId?: string;
+  proposedData: Record<string, unknown>;
+  status: 'pending' | 'approved' | 'dismissed';
+  reviewedBy?: string;
+  reviewedAt?: string;
+  createdAt: string;
+}
+
+export interface KeywordCandidate {
+  id: string;
+  clientId: string;
+  keyword: string;
+  searchVolume?: number;
+  difficulty?: number;
+  intent?: string;
+  status: 'draft' | 'research-queued' | 'researched' | 'briefed' | 'rejected';
+  createdAt: string;
+  updatedAt: string;
 }
