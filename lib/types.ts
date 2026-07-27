@@ -243,3 +243,18 @@ export interface KeywordCandidate {
   createdAt: string;
   updatedAt: string;
 }
+
+// Phase 2: Strategy Brief
+export interface StrategyBrief {
+  id: string;
+  campaignId: string;
+  painPointId: string;
+  audienceProfile: string;
+  buyingStage: string;
+  angle: string;
+  callToAction: string;
+  status: 'draft' | 'approved' | 'rejected';
+  rowVersion: number;
+  createdAt: string;
+  updatedAt: string;
+}

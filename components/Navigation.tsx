@@ -69,6 +69,16 @@ export default function Navigation() {
               Review
             </Link>
             <Link
+              href="/strategy-briefs"
+              className={`text-sm font-medium ${
+                isActive('/strategy-briefs') || pathname.startsWith('/strategy-briefs')
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-slate-600 hover:text-slate-900'
+              } pb-4`}
+            >
+              Strategy
+            </Link>
+            <Link
               href="/assets"
               className={`text-sm font-medium ${
                 isActive('/assets') || pathname.startsWith('/assets')
