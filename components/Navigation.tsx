@@ -66,7 +66,17 @@ export default function Navigation() {
                   : 'text-slate-600 hover:text-slate-900'
               } pb-4`}
             >
-              Review
+              Reconciliation
+            </Link>
+            <Link
+              href="/reviews"
+              className={`text-sm font-medium ${
+                isActive('/reviews') || pathname.startsWith('/reviews')
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-slate-600 hover:text-slate-900'
+              } pb-4`}
+            >
+              Content Reviews
             </Link>
             <Link
               href="/strategy-briefs"
@@ -87,6 +97,26 @@ export default function Navigation() {
               } pb-4`}
             >
               Assets
+            </Link>
+            <Link
+              href="/publications"
+              className={`text-sm font-medium ${
+                isActive('/publications') || pathname.startsWith('/publications')
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-slate-600 hover:text-slate-900'
+              } pb-4`}
+            >
+              Publications
+            </Link>
+            <Link
+              href="/analytics"
+              className={`text-sm font-medium ${
+                isActive('/analytics')
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-slate-600 hover:text-slate-900'
+              } pb-4`}
+            >
+              Analytics
             </Link>
             <div className="flex items-center gap-2">
               <button className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-md">
