@@ -1,15 +1,17 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser } from '@/lib/context/UserContext';
+
+/** Survives React Strict Mode remounts (useRef does not). */
+const processedAuthCodes = new Set<string>();
 
 export function OAuthHandler() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login } = useUser();
   const [error, setError] = useState<string | null>(null);
-  const startedRef = useRef(false);
 
   useEffect(() => {
     const code = searchParams.get('code');
@@ -26,9 +28,16 @@ export function OAuthHandler() {
       return;
     }
 
-    // Guard against React Strict Mode / dependency remounts consuming PKCE twice.
-    if (startedRef.current) return;
-    startedRef.current = true;
+    // Module + sessionStorage locks survive remounts that reset useRef.
+    const lockKey = `cw_v3_oauth_processed_${code}`;
+    if (processedAuthCodes.has(code) || sessionStorage.getItem(lockKey)) {
+      // #region agent log
+      fetch('http://127.0.0.1:7348/ingest/f9329de2-14be-4120-a838-fc1db3a1d0c6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d6b04'},body:JSON.stringify({sessionId:'2d6b04',runId:'pkce-callback',hypothesisId:'H1',location:'oauth-handler.tsx:lock',message:'skipped duplicate callback for auth code',data:{codeLen:code.length},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      return;
+    }
+    processedAuthCodes.add(code);
+    sessionStorage.setItem(lockKey, '1');
 
     void (async () => {
       try {
@@ -79,7 +88,7 @@ export function OAuthHandler() {
 
         clearPkceSession();
         await login(accessToken);
-        router.push('/dashboard');
+        router.replace('/dashboard');
       } catch (err) {
         console.error('OAuth callback error:', err);
         // #region agent log
