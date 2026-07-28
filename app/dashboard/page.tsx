@@ -43,13 +43,19 @@ export default function Dashboard() {
       const clientsData = await apiClient.get<Client[]>(
         `/content-writer/v3/clients?workspaceId=${workspaceId}`
       );
-      const campaignsData = await apiClient.get<ContentCampaign[]>(
-        `/content-writer/v3/campaigns?workspaceId=${workspaceId}`
-      );
+
+      // Fetch campaigns for the first client if available
+      let campaignsData: ContentCampaign[] = [];
+      if (clientsData && clientsData.length > 0) {
+        const firstClientId = clientsData[0].id;
+        campaignsData = await apiClient.get<ContentCampaign[]>(
+          `/content-writer/v3/campaigns?clientId=${firstClientId}`
+        ) || [];
+      }
 
       setWorkspace(mockWorkspace);
       setClients(clientsData || []);
-      setCampaigns(campaignsData || []);
+      setCampaigns(campaignsData);
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err);
       setError('Failed to load dashboard. Please try again later.');

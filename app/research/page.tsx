@@ -32,12 +32,34 @@ export default function ResearchPage() {
     try {
       setLoading(true);
       setError(null);
+
+      // Fetch keywords
       const keywordData = await apiClient.get<KeywordCandidate[]>(
         `/content-writer/v3/keywords?clientId=${clientId}`
       );
       setKeywords(keywordData || []);
-      // TODO: Fetch research runs when endpoint available
-      setRuns([]);
+
+      // Fetch research runs: need to get campaigns first, then research runs for each
+      try {
+        const campaignsData = await apiClient.get<any[]>(
+          `/content-writer/v3/campaigns?clientId=${clientId}`
+        );
+
+        if (campaignsData && campaignsData.length > 0) {
+          // Fetch research runs for the first campaign
+          // TODO: Aggregate runs from all campaigns if needed
+          const firstCampaignId = campaignsData[0].id;
+          const runsData = await apiClient.get<ResearchRun[]>(
+            `/content-writer/v3/research-runs?campaignId=${firstCampaignId}`
+          );
+          setRuns(runsData || []);
+        } else {
+          setRuns([]);
+        }
+      } catch (runsErr) {
+        console.warn('Failed to fetch research runs:', runsErr);
+        setRuns([]);
+      }
     } catch (err) {
       console.error('Failed to fetch research data:', err);
       setError('Failed to load research data. Please try again later.');
@@ -49,30 +71,6 @@ export default function ResearchPage() {
   };
 
 
-  const [researchRuns] = useState<ResearchRun[]>([
-    {
-      id: '1',
-      campaignId: '1',
-      keyword: 'plumbing services near me',
-      status: 'completed',
-      discoveredSourceCount: 12,
-      spentBudget: 2.45,
-      maxBudget: 5.0,
-      createdAt: new Date(Date.now() - 3600000).toISOString(),
-      completedAt: new Date(Date.now() - 1800000).toISOString(),
-    },
-    {
-      id: '2',
-      campaignId: '1',
-      keyword: 'emergency plumber',
-      status: 'running',
-      discoveredSourceCount: 5,
-      spentBudget: 0.82,
-      maxBudget: 5.0,
-      createdAt: new Date(Date.now() - 600000).toISOString(),
-      startedAt: new Date(Date.now() - 300000).toISOString(),
-    },
-  ]);
 
   const statusColor = (status: string) => {
     switch (status) {
@@ -185,33 +183,40 @@ export default function ResearchPage() {
       {/* Research Runs Tab */}
       {activeTab === 'runs' && (
         <div className="space-y-4">
-          {researchRuns.map((run) => (
-            <Link
-              key={run.id}
-              href={`/research/runs/${run.id}`}
-              className="bg-white rounded-lg shadow-sm p-6 border border-slate-200 hover:shadow-md hover:border-slate-300 transition"
-            >
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-slate-900">{run.keyword}</h3>
-                  <p className="text-sm text-slate-600 mt-1">
-                    {run.discoveredSourceCount} sources discovered • Budget: ${run.spentBudget.toFixed(2)} / ${run.maxBudget.toFixed(2)}
-                  </p>
+          {runs.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-slate-600 text-lg">No research runs yet</p>
+              <p className="text-slate-500 mt-2">Create campaigns to start research</p>
+            </div>
+          ) : (
+            runs.map((run) => (
+              <Link
+                key={run.id}
+                href={`/research/runs/${run.id}`}
+                className="bg-white rounded-lg shadow-sm p-6 border border-slate-200 hover:shadow-md hover:border-slate-300 transition"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900">{run.keyword}</h3>
+                    <p className="text-sm text-slate-600 mt-1">
+                      {run.discoveredSourceCount} sources discovered • Budget: ${run.spentBudget.toFixed(2)} / ${run.maxBudget.toFixed(2)}
+                    </p>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap ${runStatusColor(run.status)}`}>
+                    {run.status === 'running' && '⏳ Running'}
+                    {run.status === 'completed' && '✓ Completed'}
+                    {run.status === 'failed' && '✗ Failed'}
+                  </span>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap ${runStatusColor(run.status)}`}>
-                  {run.status === 'running' && '⏳ Running'}
-                  {run.status === 'completed' && '✓ Completed'}
-                  {run.status === 'failed' && '✗ Failed'}
-                </span>
-              </div>
-              <div className="w-full bg-slate-200 rounded-full h-2">
-                <div
-                  className="bg-blue-600 h-2 rounded-full"
-                  style={{ width: `${(run.spentBudget / run.maxBudget) * 100}%` }}
-                ></div>
-              </div>
-            </Link>
-          ))}
+                <div className="w-full bg-slate-200 rounded-full h-2">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full"
+                    style={{ width: `${(run.spentBudget / run.maxBudget) * 100}%` }}
+                  ></div>
+                </div>
+              </Link>
+            ))
+          )}
         </div>
       )}
     </div>

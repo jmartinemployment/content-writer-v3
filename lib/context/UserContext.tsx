@@ -38,7 +38,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch('http://localhost:5000/api/content-writer/v3/auth/me', {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/content-writer/v3';
+      const response = await fetch(`${baseUrl}/auth/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
