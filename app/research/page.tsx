@@ -35,14 +35,14 @@ export default function ResearchPage() {
 
       // Fetch keywords
       const keywordData = await apiClient.get<KeywordCandidate[]>(
-        `/content-writer/v3/keywords?clientId=${clientId}`
+        `/keywords?clientId=${clientId}`
       );
       setKeywords(keywordData || []);
 
       // Fetch research runs: need to get campaigns first, then research runs for each
       try {
         const campaignsData = await apiClient.get<any[]>(
-          `/content-writer/v3/campaigns?clientId=${clientId}`
+          `/campaigns?clientId=${clientId}`
         );
 
         if (campaignsData && campaignsData.length > 0) {
@@ -50,7 +50,7 @@ export default function ResearchPage() {
           // TODO: Aggregate runs from all campaigns if needed
           const firstCampaignId = campaignsData[0].id;
           const runsData = await apiClient.get<ResearchRun[]>(
-            `/content-writer/v3/research-runs?campaignId=${firstCampaignId}`
+            `/research-runs?campaignId=${firstCampaignId}`
           );
           setRuns(runsData || []);
         } else {

@@ -30,7 +30,7 @@ export default function ReconciliationPage() {
       setLoading(true);
       setError(null);
       const data = await apiClient.get<ReconciliationProposal[]>(
-        `/content-writer/v3/reconciliation?clientId=${clientId}`
+        `/reconciliation?clientId=${clientId}`
       );
       setProposals(data || []);
     } catch (err) {

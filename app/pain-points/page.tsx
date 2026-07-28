@@ -31,7 +31,7 @@ export default function PainPointsPage() {
       setLoading(true);
       setError(null);
       const data = await apiClient.get<PainPoint[]>(
-        `/content-writer/v3/pain-points?clientId=${clientId}`
+        `/pain-points?clientId=${clientId}`
       );
       setPainPoints(data || []);
     } catch (err) {

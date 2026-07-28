@@ -55,7 +55,7 @@ export default function AnalyticsPage() {
       setLoading(true);
       setError(null);
       const data = await apiClient.get<{ metrics: ContentMetrics[]; insights: InsightAnalytics[] }>(
-        `/content-writer/v3/analytics?clientId=${clientId}`
+        `/analytics?clientId=${clientId}`
       );
       setContentMetrics(data?.metrics || []);
       setInsightAnalytics(data?.insights || []);

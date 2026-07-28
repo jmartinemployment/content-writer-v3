@@ -31,7 +31,7 @@ export default function AssetsPage() {
       setLoading(true);
       setError(null);
       const data = await apiClient.get<ContentAsset[]>(
-        `/content-writer/v3/assets?clientId=${clientId}`
+        `/assets?clientId=${clientId}`
       );
       setAssets(data || []);
     } catch (err) {

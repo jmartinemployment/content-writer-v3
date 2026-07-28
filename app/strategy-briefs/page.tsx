@@ -31,7 +31,7 @@ export default function StrategyBriefsPage() {
       setLoading(true);
       setError(null);
       const data = await apiClient.get<StrategyBrief[]>(
-        `/content-writer/v3/strategy-briefs?campaignId=${campaignId}`
+        `/strategy-briefs?campaignId=${campaignId}`
       );
       setBriefs(data || []);
     } catch (err) {

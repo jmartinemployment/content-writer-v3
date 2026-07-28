@@ -30,7 +30,7 @@ export default function InsightsPage() {
       setLoading(true);
       setError(null);
       const data = await apiClient.get<PainPoint[]>(
-        `/content-writer/v3/pain-points?clientId=${clientId}`
+        `/pain-points?clientId=${clientId}`
       );
       setInsights(data || []);
     } catch (err) {

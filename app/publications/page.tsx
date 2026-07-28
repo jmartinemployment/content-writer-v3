@@ -29,7 +29,7 @@ export default function PublicationsPage() {
       setLoading(true);
       setError(null);
       const data = await apiClient.get<Publication[]>(
-        `/content-writer/v3/publications`
+        `/publications`
       );
       setPublications(data || []);
     } catch (err) {

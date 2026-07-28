@@ -31,7 +31,7 @@ export default function CampaignsPage() {
       setLoading(true);
       setError(null);
       const data = await apiClient.get<ContentCampaign[]>(
-        `/content-writer/v3/campaigns?clientId=${clientId}`
+        `/campaigns?clientId=${clientId}`
       );
       setCampaigns(data || []);
     } catch (err) {

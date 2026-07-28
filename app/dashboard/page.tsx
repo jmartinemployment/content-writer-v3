@@ -41,7 +41,7 @@ export default function Dashboard() {
       };
 
       const clientsData = await apiClient.get<Client[]>(
-        `/content-writer/v3/clients?workspaceId=${workspaceId}`
+        `/clients?workspaceId=${workspaceId}`
       );
 
       // Fetch campaigns for the first client if available
@@ -49,7 +49,7 @@ export default function Dashboard() {
       if (clientsData && clientsData.length > 0) {
         const firstClientId = clientsData[0].id;
         campaignsData = await apiClient.get<ContentCampaign[]>(
-          `/content-writer/v3/campaigns?clientId=${firstClientId}`
+          `/campaigns?clientId=${firstClientId}`
         ) || [];
       }
 
