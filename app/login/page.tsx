@@ -14,17 +14,28 @@ export default function LoginPage() {
     }
   }, [user, router]);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     const oauthUrl = process.env.NEXT_PUBLIC_GEEK_OAUTH_URL || 'https://auth.geekatyourspot.com';
     const clientId = 'content-writer-v3';
     const redirectUri = `${window.location.origin}/auth/callback`;
+
+    const { createPkceChallenge, persistPkceSession } = await import('@/lib/pkce');
+    const { verifier, challenge, state } = await createPkceChallenge();
+    persistPkceSession(verifier, state);
 
     const params = new URLSearchParams({
       client_id: clientId,
       redirect_uri: redirectUri,
       response_type: 'code',
       scope: 'openid profile email offline_access',
+      code_challenge: challenge,
+      code_challenge_method: 'S256',
+      state,
     });
+
+    // #region agent log
+    fetch('http://127.0.0.1:7348/ingest/f9329de2-14be-4120-a838-fc1db3a1d0c6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d6b04'},body:JSON.stringify({sessionId:'2d6b04',runId:'pkce-fix',hypothesisId:'H1',location:'login/page.tsx:handleLogin',message:'authorize URL built with PKCE',data:{hasChallenge:!!challenge,challengeLen:challenge.length,hasState:!!state,redirectUri},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
 
     window.location.href = `${oauthUrl}/connect/authorize?${params.toString()}`;
   };

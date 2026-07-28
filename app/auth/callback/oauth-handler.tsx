@@ -34,6 +34,19 @@ export function OAuthHandler() {
       const clientId = 'content-writer-v3';
       const redirectUri = `${window.location.origin}/auth/callback`;
 
+      const { takePkceSession } = await import('@/lib/pkce');
+      const { verifier, state: storedState } = takePkceSession();
+      if (!verifier) {
+        throw new Error('Missing PKCE verifier — restart sign-in from /login');
+      }
+      if (storedState && state && storedState !== state) {
+        throw new Error('OAuth state mismatch — restart sign-in from /login');
+      }
+
+      // #region agent log
+      fetch('http://127.0.0.1:7348/ingest/f9329de2-14be-4120-a838-fc1db3a1d0c6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d6b04'},body:JSON.stringify({sessionId:'2d6b04',runId:'pkce-fix',hypothesisId:'H2',location:'oauth-handler.tsx:handleCallback',message:'token exchange with PKCE verifier',data:{hasVerifier:!!verifier,verifierLen:verifier.length,stateMatch:!storedState||!state||storedState===state},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+
       // Exchange authorization code for access token
       const response = await fetch(`${oauthUrl}/connect/token`, {
         method: 'POST',
@@ -45,11 +58,13 @@ export function OAuthHandler() {
           code,
           client_id: clientId,
           redirect_uri: redirectUri,
+          code_verifier: verifier,
         }).toString(),
       });
 
       if (!response.ok) {
-        throw new Error(`Token exchange failed: ${response.statusText}`);
+        const errBody = await response.text().catch(() => '');
+        throw new Error(`Token exchange failed: ${response.status} ${errBody || response.statusText}`);
       }
 
       const tokenData = await response.json();
