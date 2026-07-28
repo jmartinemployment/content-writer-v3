@@ -16,6 +16,41 @@ function randomUrlSafeString(byteLength = 32): string {
   return base64UrlEncode(bytes);
 }
 
+function read(key: string): string | null {
+  try {
+    return sessionStorage.getItem(key) ?? localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function write(key: string, value: string): void {
+  try {
+    sessionStorage.setItem(key, value);
+  } catch {
+    /* private mode / blocked */
+  }
+  try {
+    // localStorage survives some cross-site redirect cases where sessionStorage is empty on return.
+    localStorage.setItem(key, value);
+  } catch {
+    /* private mode / blocked */
+  }
+}
+
+function remove(key: string): void {
+  try {
+    sessionStorage.removeItem(key);
+  } catch {
+    /* ignore */
+  }
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    /* ignore */
+  }
+}
+
 export async function createPkceChallenge(): Promise<{
   verifier: string;
   challenge: string;
@@ -29,19 +64,39 @@ export async function createPkceChallenge(): Promise<{
 }
 
 export function persistPkceSession(verifier: string, state: string): void {
-  sessionStorage.setItem(VERIFIER_KEY, verifier);
-  sessionStorage.setItem(STATE_KEY, state);
+  write(VERIFIER_KEY, verifier);
+  write(STATE_KEY, state);
 }
 
 /** Read PKCE session without clearing — safe under React Strict Mode remounts. */
-export function peekPkceSession(): { verifier: string | null; state: string | null } {
-  return {
-    verifier: sessionStorage.getItem(VERIFIER_KEY),
-    state: sessionStorage.getItem(STATE_KEY),
-  };
+export function peekPkceSession(): {
+  verifier: string | null;
+  state: string | null;
+  source: 'session' | 'local' | 'none';
+} {
+  let source: 'session' | 'local' | 'none' = 'none';
+  let verifier: string | null = null;
+  let state: string | null = null;
+  try {
+    verifier = sessionStorage.getItem(VERIFIER_KEY);
+    state = sessionStorage.getItem(STATE_KEY);
+    if (verifier) source = 'session';
+  } catch {
+    /* ignore */
+  }
+  if (!verifier) {
+    try {
+      verifier = localStorage.getItem(VERIFIER_KEY);
+      state = state ?? localStorage.getItem(STATE_KEY);
+      if (verifier) source = 'local';
+    } catch {
+      /* ignore */
+    }
+  }
+  return { verifier, state, source };
 }
 
 export function clearPkceSession(): void {
-  sessionStorage.removeItem(VERIFIER_KEY);
-  sessionStorage.removeItem(STATE_KEY);
+  remove(VERIFIER_KEY);
+  remove(STATE_KEY);
 }

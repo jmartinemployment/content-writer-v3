@@ -23,6 +23,10 @@ export default function LoginPage() {
     const { verifier, challenge, state } = await createPkceChallenge();
     persistPkceSession(verifier, state);
 
+    // #region agent log
+    fetch('http://127.0.0.1:7348/ingest/f9329de2-14be-4120-a838-fc1db3a1d0c6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d6b04'},body:JSON.stringify({sessionId:'2d6b04',runId:'pkce-callback',hypothesisId:'H2',location:'login/page.tsx:handleLogin',message:'PKCE persisted before authorize redirect',data:{verifierLen:verifier.length,challengeLen:challenge.length,origin:window.location.origin,sessionHas:!!sessionStorage.getItem('cw_v3_pkce_verifier'),localHas:!!localStorage.getItem('cw_v3_pkce_verifier')},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+
     const params = new URLSearchParams({
       client_id: clientId,
       redirect_uri: redirectUri,

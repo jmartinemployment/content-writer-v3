@@ -46,10 +46,10 @@ export function OAuthHandler() {
         const redirectUri = `${window.location.origin}/auth/callback`;
 
         const { peekPkceSession, clearPkceSession } = await import('@/lib/pkce');
-        const { verifier, state: storedState } = peekPkceSession();
+        const { verifier, state: storedState, source } = peekPkceSession();
 
         // #region agent log
-        fetch('http://127.0.0.1:7348/ingest/f9329de2-14be-4120-a838-fc1db3a1d0c6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d6b04'},body:JSON.stringify({sessionId:'2d6b04',runId:'pkce-callback',hypothesisId:'H1',location:'oauth-handler.tsx:callback',message:'PKCE peek before token exchange',data:{hasVerifier:!!verifier,verifierLen:verifier?.length??0,hasStoredState:!!storedState,hasCode:!!code,origin:window.location.origin},timestamp:Date.now()})}).catch(()=>{});
+        fetch('http://127.0.0.1:7348/ingest/f9329de2-14be-4120-a838-fc1db3a1d0c6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d6b04'},body:JSON.stringify({sessionId:'2d6b04',runId:'pkce-callback',hypothesisId:'H2',location:'oauth-handler.tsx:callback',message:'PKCE peek before token exchange',data:{hasVerifier:!!verifier,verifierLen:verifier?.length??0,source,hasStoredState:!!storedState,hasCode:!!code,origin:window.location.origin},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
 
         if (!verifier) {
