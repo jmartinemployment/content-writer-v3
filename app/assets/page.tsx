@@ -21,6 +21,11 @@ export default function AssetsPage() {
       router.push('/login');
       return;
     }
+    if (!authLoading && user && !clientId) {
+      setLoading(false);
+      setError('No client is linked to this account yet.');
+      return;
+    }
     if (clientId) {
       fetchAssets();
     }
