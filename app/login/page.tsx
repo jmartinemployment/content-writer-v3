@@ -33,10 +33,6 @@ export default function LoginPage() {
       state,
     });
 
-    // #region agent log
-    fetch('http://127.0.0.1:7348/ingest/f9329de2-14be-4120-a838-fc1db3a1d0c6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d6b04'},body:JSON.stringify({sessionId:'2d6b04',runId:'pkce-fix',hypothesisId:'H1',location:'login/page.tsx:handleLogin',message:'authorize URL built with PKCE',data:{hasChallenge:!!challenge,challengeLen:challenge.length,hasState:!!state,redirectUri},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-
     window.location.href = `${oauthUrl}/connect/authorize?${params.toString()}`;
   };
 
