@@ -26,36 +26,46 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA "content-writer-3" GRANT ALL ON TABLES TO pos
 ALTER DEFAULT PRIVILEGES IN SCHEMA "content-writer-3" GRANT ALL ON SEQUENCES TO postgres;
 ```
 
-### 2. Run GeekRepository Migrations
+### 2. Start Services (Migrations Run Automatically)
 
-```bash
-cd /Users/jeffmartin/development/GeekBackend
+GeekOAuth and GeekRepository run migrations automatically on startup via `db.Database.MigrateAsync()`. No manual migration steps needed.
 
-# Set environment variables
-export DATABASE_URL="postgresql://postgres:YOUR_PASSWORD@db.supabase.co:5432/postgres?schema=content-writer-3&sslmode=require"
-
-# Run migrations
-dotnet ef database update --project GeekRepository/GeekRepository.csproj
-```
-
-### 3. Run GeekOAuth Migrations
-
+**Terminal 1 — GeekOAuth:**
 ```bash
 cd /Users/jeffmartin/development/GeekOAuth
-
-# Set environment variables
-export DATABASE_URL="postgresql://postgres:YOUR_PASSWORD@db.supabase.co:5432/postgres?schema=content-writer-3&sslmode=require"
+export DATABASE_URL="postgresql://postgres:PASSWORD@db.supabase.co:5432/postgres?schema=content-writer-3&sslmode=require"
 export ISSUER_URL="https://auth.geekatyourspot.com"
-export DATA_PROTECTION_PURPOSE="GeekOAuth-production"
-
-# Run migrations (OpenIddict tables only)
-dotnet ef database update --project src/GeekOAuth.Server/GeekOAuth.Server.csproj --context OpenIddictDbContext
-
-# Run identity tables (run once)
-psql "$DATABASE_URL" -f src/GeekOAuth.Server/Data/identity_tables.sql
+dotnet run --project src/GeekOAuth.Server
+# Migrations run automatically on startup
 ```
 
-### 4. Verify Schema
+**Terminal 2 — GeekRepository:**
+```bash
+cd /Users/jeffmartin/development/GeekBackend
+export DATABASE_URL="postgresql://postgres:PASSWORD@db.supabase.co:5432/postgres?schema=content-writer-3&sslmode=require"
+dotnet run --project GeekRepository/GeekRepository.csproj
+# Migrations run automatically on startup
+```
+
+**Terminal 3 — GeekAPI:**
+```bash
+cd /Users/jeffmartin/development/GeekBackend
+export REPO_URL=http://localhost:5050
+export REPO_API_KEY=dev-key
+dotnet run --project GeekAPI/GeekAPI.csproj
+```
+
+**Terminal 4 — Frontend:**
+```bash
+cd /Users/jeffmartin/development/content-writer-v3
+export NEXT_PUBLIC_API_URL=http://localhost:5000/api/content-writer/v3
+export NEXT_PUBLIC_GEEK_OAUTH_URL=http://localhost:8080
+npm run dev
+```
+
+Tables will be created in the `content-writer-3` schema automatically.
+
+### 3. Verify Schema
 
 ```sql
 -- List all tables in content-writer-3 schema
@@ -71,18 +81,19 @@ ORDER BY table_name;
 
 ## Local Development
 
-For local PostgreSQL development:
+For local PostgreSQL development, migrations run automatically on service startup:
 
 ```bash
-# Create local database
+# Create local database and schema
 createdb postgres
-
-# Create schema
 psql -d postgres -c 'CREATE SCHEMA "content-writer-3";'
 
-# Run migrations with local connection
+# Set local DATABASE_URL and start services
 export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres?schema=content-writer-3"
-dotnet ef database update --project GeekRepository/GeekRepository.csproj
+
+# Services run migrations automatically on startup
+dotnet run --project GeekRepository/GeekRepository.csproj
+dotnet run --project src/GeekOAuth.Server
 ```
 
 ## Environment Variables
