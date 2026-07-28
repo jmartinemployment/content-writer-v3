@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { ContentCampaign, Workspace, Client } from '@/lib/types';
 import { apiClient } from '@/lib/api';
 import { useUser } from '@/lib/context/UserContext';
+import { getApiBaseUrl } from '@/lib/config';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -16,7 +17,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const workspaceId = user?.workspaceId || '1';
+  const workspaceId = user?.workspaceId || '550e8400-e29b-41d4-a716-446655440001';
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -40,9 +41,17 @@ export default function Dashboard() {
         updatedAt: new Date().toISOString(),
       };
 
+      // #region agent log
+      fetch('http://127.0.0.1:7348/ingest/f9329de2-14be-4120-a838-fc1db3a1d0c6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d6b04'},body:JSON.stringify({sessionId:'2d6b04',runId:'post-fix',hypothesisId:'H11',location:'dashboard/page.tsx:fetch',message:'dashboard clients fetch start',data:{workspaceId,apiBase:process.env.NEXT_PUBLIC_API_URL||'(runtime-fallback)',hostname:window.location.hostname,hasToken:!!localStorage.getItem('auth_token')},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+
       const clientsData = await apiClient.get<Client[]>(
         `/clients?workspaceId=${workspaceId}`
       );
+
+      // #region agent log
+      fetch('http://127.0.0.1:7348/ingest/f9329de2-14be-4120-a838-fc1db3a1d0c6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d6b04'},body:JSON.stringify({sessionId:'2d6b04',runId:'post-fix',hypothesisId:'H11',location:'dashboard/page.tsx:clients-ok',message:'clients fetch ok',data:{count:Array.isArray(clientsData)?clientsData.length:-1,workspaceId,apiBase:getApiBaseUrl(),hostname:window.location.hostname},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
 
       // Fetch campaigns for the first client if available
       let campaignsData: ContentCampaign[] = [];
@@ -58,7 +67,15 @@ export default function Dashboard() {
       setCampaigns(campaignsData);
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err);
-      setError('Failed to load dashboard. Please try again later.');
+      const detail = err instanceof Error ? err.message : String(err);
+      const axiosDetail = (err as { response?: { status?: number; data?: unknown }; config?: { baseURL?: string; url?: string } });
+      // #region agent log
+      fetch('http://127.0.0.1:7348/ingest/f9329de2-14be-4120-a838-fc1db3a1d0c6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d6b04'},body:JSON.stringify({sessionId:'2d6b04',runId:'post-fix',hypothesisId:'H11',location:'dashboard/page.tsx:catch',message:'dashboard fetch failed',data:{detail,status:axiosDetail.response?.status,baseURL:axiosDetail.config?.baseURL,url:axiosDetail.config?.url,apiBase:getApiBaseUrl(),hostname:window.location.hostname,workspaceId},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      setError(
+        `Failed to load dashboard (${getApiBaseUrl()}): ${detail}` +
+          (axiosDetail.response?.status ? ` [HTTP ${axiosDetail.response.status}]` : '')
+      );
 
       // Fallback to minimal mock data for development
       const mockWorkspace: Workspace = {

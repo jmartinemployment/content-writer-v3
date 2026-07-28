@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { ApiResponse, PaginatedResponse } from './types';
+import { getApiBaseUrl } from './config';
 
 class ApiClient {
   private instance: AxiosInstance;
@@ -14,6 +15,8 @@ class ApiClient {
 
     // Add request interceptor for auth token
     this.instance.interceptors.request.use((config) => {
+      // Resolve at request time so deployed hosts never stick to a localhost build fallback.
+      config.baseURL = getApiBaseUrl();
       const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
@@ -25,12 +28,18 @@ class ApiClient {
     this.instance.interceptors.response.use(
       (response) => response,
       (error: AxiosError) => {
-        if (error.response?.status === 401) {
-          // Handle unauthorized
-          if (typeof window !== 'undefined') {
-            localStorage.removeItem('auth_token');
-            window.location.href = '/login';
+        // Only force re-login on explicit unauthorized from the API — never on network/CORS failures.
+        if (error.response?.status === 401 && typeof window !== 'undefined') {
+          const body = error.response.data as { error?: string } | undefined;
+          // #region agent log
+          fetch('http://127.0.0.1:7348/ingest/f9329de2-14be-4120-a838-fc1db3a1d0c6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d6b04'},body:JSON.stringify({sessionId:'2d6b04',runId:'post-fix',hypothesisId:'H14',location:'api.ts:401',message:'API returned 401',data:{url:error.config?.url,baseURL:error.config?.baseURL,apiError:body?.error,hostname:window.location.hostname},timestamp:Date.now()})}).catch(()=>{});
+          // #endregion
+          // Keep token if GeekAPI rejected Bearer as missing API key (misconfigured gate) — surface error instead.
+          if (body?.error === 'API key is missing' || body?.error === 'Invalid API key') {
+            return Promise.reject(error);
           }
+          localStorage.removeItem('auth_token');
+          window.location.href = '/login';
         }
         return Promise.reject(error);
       }
@@ -88,6 +97,4 @@ class ApiClient {
   }
 }
 
-export const apiClient = new ApiClient(
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/content-writer/v3'
-);
+export const apiClient = new ApiClient(getApiBaseUrl());

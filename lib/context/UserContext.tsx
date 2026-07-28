@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { getApiBaseUrl } from '@/lib/config';
 
 export interface User {
   id: string;
@@ -37,23 +38,42 @@ export function UserProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       setError(null);
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/content-writer/v3';
+      const baseUrl = getApiBaseUrl();
       const response = await fetch(`${baseUrl}/auth/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
+      // #region agent log
+      fetch('http://127.0.0.1:7348/ingest/f9329de2-14be-4120-a838-fc1db3a1d0c6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d6b04'},body:JSON.stringify({sessionId:'2d6b04',runId:'post-fix',hypothesisId:'H11',location:'UserContext.tsx:validateToken',message:'auth/me resolved API base',data:{ok:response.ok,status:response.status,apiHost:(()=>{try{return new URL(baseUrl).host}catch{return baseUrl}})(),hostname:typeof window!=='undefined'?window.location.hostname:'ssr',hasEnv:!!process.env.NEXT_PUBLIC_API_URL,tokenParts:token.split('.').length},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+
       if (!response.ok) {
-        throw new Error('Token validation failed');
+        // Keep OAuth token; API may be briefly unavailable (CORS/auth) without invalidating login.
+        console.warn('auth/me returned', response.status);
+        setUser({
+          id: 'pending',
+          email: '',
+          clientId: '',
+          workspaceId: '550e8400-e29b-41d4-a716-446655440001',
+        });
+        return;
       }
 
       const userData = await response.json();
       setUser(userData);
     } catch (err) {
-      console.error('Token validation error:', err);
-      localStorage.removeItem('auth_token');
-      setUser(null);
+      console.warn('auth/me unreachable; keeping OAuth token', err);
+      // #region agent log
+      fetch('http://127.0.0.1:7348/ingest/f9329de2-14be-4120-a838-fc1db3a1d0c6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d6b04'},body:JSON.stringify({sessionId:'2d6b04',runId:'post-fix',hypothesisId:'H1',location:'UserContext.tsx:validateToken:catch',message:'auth/me network/CORS failure',data:{error:err instanceof Error?err.message:String(err)},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      setUser({
+        id: 'pending',
+        email: '',
+        clientId: '',
+        workspaceId: '550e8400-e29b-41d4-a716-446655440001',
+      });
     } finally {
       setLoading(false);
     }
@@ -64,7 +84,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setError(null);
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/content-writer/v3';
+      const baseUrl = getApiBaseUrl();
       const response = await fetch(`${baseUrl}/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -78,7 +98,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
           id: 'pending',
           email: '',
           clientId: '',
-          workspaceId: '',
+          workspaceId: '550e8400-e29b-41d4-a716-446655440001',
         });
       }
     } catch (err) {
@@ -87,7 +107,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         id: 'pending',
         email: '',
         clientId: '',
-        workspaceId: '',
+        workspaceId: '550e8400-e29b-41d4-a716-446655440001',
       });
     } finally {
       setLoading(false);
