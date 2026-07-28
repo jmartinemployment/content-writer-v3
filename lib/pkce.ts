@@ -16,26 +16,46 @@ function randomUrlSafeString(byteLength = 32): string {
   return base64UrlEncode(bytes);
 }
 
-function read(key: string): string | null {
-  try {
-    return sessionStorage.getItem(key) ?? localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
-
 function write(key: string, value: string): void {
   try {
     sessionStorage.setItem(key, value);
   } catch {
-    /* private mode / blocked */
+    /* ignore */
   }
   try {
-    // localStorage survives some cross-site redirect cases where sessionStorage is empty on return.
     localStorage.setItem(key, value);
   } catch {
-    /* private mode / blocked */
+    /* ignore */
   }
+  try {
+    document.cookie = `${encodeURIComponent(key)}=${encodeURIComponent(value)}; Path=/; Max-Age=600; SameSite=Lax; Secure`;
+  } catch {
+    /* ignore */
+  }
+}
+
+function read(key: string): string | null {
+  try {
+    const fromSession = sessionStorage.getItem(key);
+    if (fromSession) return fromSession;
+  } catch {
+    /* ignore */
+  }
+  try {
+    const fromLocal = localStorage.getItem(key);
+    if (fromLocal) return fromLocal;
+  } catch {
+    /* ignore */
+  }
+  try {
+    const match = document.cookie.match(
+      new RegExp(`(?:^|; )${key.replace(/[$()*+./?[\\\]^{|}-]/g, '\\$&')}=([^;]*)`),
+    );
+    if (match?.[1]) return decodeURIComponent(match[1]);
+  } catch {
+    /* ignore */
+  }
+  return null;
 }
 
 function remove(key: string): void {
@@ -46,6 +66,11 @@ function remove(key: string): void {
   }
   try {
     localStorage.removeItem(key);
+  } catch {
+    /* ignore */
+  }
+  try {
+    document.cookie = `${encodeURIComponent(key)}=; Path=/; Max-Age=0; SameSite=Lax; Secure`;
   } catch {
     /* ignore */
   }
@@ -68,35 +93,53 @@ export function persistPkceSession(verifier: string, state: string): void {
   write(STATE_KEY, state);
 }
 
-/** Read PKCE session without clearing — safe under React Strict Mode remounts. */
 export function peekPkceSession(): {
   verifier: string | null;
   state: string | null;
-  source: 'session' | 'local' | 'none';
+  source: 'session' | 'local' | 'cookie' | 'none';
 } {
-  let source: 'session' | 'local' | 'none' = 'none';
-  let verifier: string | null = null;
-  let state: string | null = null;
   try {
-    verifier = sessionStorage.getItem(VERIFIER_KEY);
-    state = sessionStorage.getItem(STATE_KEY);
-    if (verifier) source = 'session';
+    const verifier = sessionStorage.getItem(VERIFIER_KEY);
+    if (verifier) {
+      return { verifier, state: sessionStorage.getItem(STATE_KEY) ?? read(STATE_KEY), source: 'session' };
+    }
   } catch {
     /* ignore */
   }
-  if (!verifier) {
-    try {
-      verifier = localStorage.getItem(VERIFIER_KEY);
-      state = state ?? localStorage.getItem(STATE_KEY);
-      if (verifier) source = 'local';
-    } catch {
-      /* ignore */
+  try {
+    const verifier = localStorage.getItem(VERIFIER_KEY);
+    if (verifier) {
+      return { verifier, state: localStorage.getItem(STATE_KEY) ?? read(STATE_KEY), source: 'local' };
     }
+  } catch {
+    /* ignore */
   }
-  return { verifier, state, source };
+  try {
+    const match = document.cookie.match(
+      new RegExp(`(?:^|; )${VERIFIER_KEY.replace(/[$()*+./?[\\\]^{|}-]/g, '\\$&')}=([^;]*)`),
+    );
+    if (match?.[1]) {
+      return {
+        verifier: decodeURIComponent(match[1]),
+        state: read(STATE_KEY),
+        source: 'cookie',
+      };
+    }
+  } catch {
+    /* ignore */
+  }
+  return { verifier: null, state: read(STATE_KEY), source: 'none' };
 }
 
 export function clearPkceSession(): void {
   remove(VERIFIER_KEY);
   remove(STATE_KEY);
+}
+
+export function markAuthCodeProcessed(code: string): void {
+  write(`cw_v3_oauth_processed_${code}`, '1');
+}
+
+export function wasAuthCodeProcessed(code: string): boolean {
+  return read(`cw_v3_oauth_processed_${code}`) === '1';
 }

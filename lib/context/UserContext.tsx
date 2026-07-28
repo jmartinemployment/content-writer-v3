@@ -61,7 +61,37 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const login = async (token: string) => {
     localStorage.setItem('auth_token', token);
-    await validateToken(token);
+    setLoading(true);
+    setError(null);
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/content-writer/v3';
+      const response = await fetch(`${baseUrl}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+      } else {
+        // Keep the OAuth token even when the API profile endpoint is unavailable.
+        console.warn('auth/me returned', response.status);
+        setUser({
+          id: 'pending',
+          email: '',
+          clientId: '',
+          workspaceId: '',
+        });
+      }
+    } catch (err) {
+      console.warn('auth/me unreachable; keeping OAuth token', err);
+      setUser({
+        id: 'pending',
+        email: '',
+        clientId: '',
+        workspaceId: '',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const logout = () => {

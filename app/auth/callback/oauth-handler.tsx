@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useUser } from '@/lib/context/UserContext';
 
-/** Survives React Strict Mode remounts (useRef does not). */
+/** Survives React Strict Mode remounts within the same JS realm. */
 const processedAuthCodes = new Set<string>();
 
 export function OAuthHandler() {
@@ -28,28 +28,38 @@ export function OAuthHandler() {
       return;
     }
 
-    // Module + sessionStorage locks survive remounts that reset useRef.
-    const lockKey = `cw_v3_oauth_processed_${code}`;
-    if (processedAuthCodes.has(code) || sessionStorage.getItem(lockKey)) {
-      // #region agent log
-      fetch('http://127.0.0.1:7348/ingest/f9329de2-14be-4120-a838-fc1db3a1d0c6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d6b04'},body:JSON.stringify({sessionId:'2d6b04',runId:'pkce-callback',hypothesisId:'H1',location:'oauth-handler.tsx:lock',message:'skipped duplicate callback for auth code',data:{codeLen:code.length},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
-      return;
-    }
-    processedAuthCodes.add(code);
-    sessionStorage.setItem(lockKey, '1');
-
     void (async () => {
+      const {
+        peekPkceSession,
+        clearPkceSession,
+        markAuthCodeProcessed,
+        wasAuthCodeProcessed,
+      } = await import('@/lib/pkce');
+
+      // Already finished this code (success path or prior attempt) — don't error on remount.
+      if (processedAuthCodes.has(code) || wasAuthCodeProcessed(code)) {
+        // #region agent log
+        fetch('http://127.0.0.1:7348/ingest/f9329de2-14be-4120-a838-fc1db3a1d0c6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d6b04'},body:JSON.stringify({sessionId:'2d6b04',runId:'pkce-callback',hypothesisId:'H4',location:'oauth-handler.tsx:lock',message:'code already processed — resume session',data:{codeLen:code.length,hasToken:!!localStorage.getItem('auth_token')},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+        if (localStorage.getItem('auth_token')) {
+          router.replace('/dashboard');
+          return;
+        }
+        return;
+      }
+
+      processedAuthCodes.add(code);
+      markAuthCodeProcessed(code);
+
       try {
         const oauthUrl = process.env.NEXT_PUBLIC_GEEK_OAUTH_URL || 'https://auth.geekatyourspot.com';
         const clientId = 'content-writer-v3';
         const redirectUri = `${window.location.origin}/auth/callback`;
 
-        const { peekPkceSession, clearPkceSession } = await import('@/lib/pkce');
         const { verifier, state: storedState, source } = peekPkceSession();
 
         // #region agent log
-        fetch('http://127.0.0.1:7348/ingest/f9329de2-14be-4120-a838-fc1db3a1d0c6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d6b04'},body:JSON.stringify({sessionId:'2d6b04',runId:'pkce-callback',hypothesisId:'H2',location:'oauth-handler.tsx:callback',message:'PKCE peek before token exchange',data:{hasVerifier:!!verifier,verifierLen:verifier?.length??0,source,hasStoredState:!!storedState,hasCode:!!code,origin:window.location.origin},timestamp:Date.now()})}).catch(()=>{});
+        fetch('http://127.0.0.1:7348/ingest/f9329de2-14be-4120-a838-fc1db3a1d0c6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d6b04'},body:JSON.stringify({sessionId:'2d6b04',runId:'pkce-callback',hypothesisId:'H4',location:'oauth-handler.tsx:callback',message:'PKCE peek before token exchange',data:{hasVerifier:!!verifier,verifierLen:verifier?.length??0,source,hasStoredState:!!storedState,hasCode:!!code,origin:window.location.origin},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
 
         if (!verifier) {
@@ -86,13 +96,14 @@ export function OAuthHandler() {
           throw new Error('No access token in response');
         }
 
-        clearPkceSession();
+        // Keep PKCE until after login+navigation so remounts can still short-circuit via lock.
         await login(accessToken);
+        clearPkceSession();
         router.replace('/dashboard');
       } catch (err) {
         console.error('OAuth callback error:', err);
         // #region agent log
-        fetch('http://127.0.0.1:7348/ingest/f9329de2-14be-4120-a838-fc1db3a1d0c6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d6b04'},body:JSON.stringify({sessionId:'2d6b04',runId:'pkce-callback',hypothesisId:'H1',location:'oauth-handler.tsx:catch',message:'OAuth callback failed',data:{error:err instanceof Error?err.message:String(err)},timestamp:Date.now()})}).catch(()=>{});
+        fetch('http://127.0.0.1:7348/ingest/f9329de2-14be-4120-a838-fc1db3a1d0c6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d6b04'},body:JSON.stringify({sessionId:'2d6b04',runId:'pkce-callback',hypothesisId:'H4',location:'oauth-handler.tsx:catch',message:'OAuth callback failed',data:{error:err instanceof Error?err.message:String(err)},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
         setError(err instanceof Error ? err.message : 'Authentication failed');
       }
