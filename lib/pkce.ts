@@ -33,10 +33,15 @@ export function persistPkceSession(verifier: string, state: string): void {
   sessionStorage.setItem(STATE_KEY, state);
 }
 
-export function takePkceSession(): { verifier: string | null; state: string | null } {
-  const verifier = sessionStorage.getItem(VERIFIER_KEY);
-  const state = sessionStorage.getItem(STATE_KEY);
+/** Read PKCE session without clearing — safe under React Strict Mode remounts. */
+export function peekPkceSession(): { verifier: string | null; state: string | null } {
+  return {
+    verifier: sessionStorage.getItem(VERIFIER_KEY),
+    state: sessionStorage.getItem(STATE_KEY),
+  };
+}
+
+export function clearPkceSession(): void {
   sessionStorage.removeItem(VERIFIER_KEY);
   sessionStorage.removeItem(STATE_KEY);
-  return { verifier, state };
 }
