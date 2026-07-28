@@ -195,7 +195,14 @@ export default function Dashboard() {
               </tr>
             </thead>
             <tbody>
-              {campaigns.map((campaign) => (
+              {campaigns.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-10 text-center text-sm text-slate-500">
+                    No campaigns yet. API connected successfully — create a client/campaign to get started.
+                  </td>
+                </tr>
+              ) : (
+                campaigns.map((campaign) => (
                 <tr key={campaign.id} className="border-t border-slate-200 hover:bg-slate-50">
                   <td className="px-6 py-4 text-sm text-slate-900 font-medium">{campaign.name}</td>
                   <td className="px-6 py-4 text-sm text-slate-600">
@@ -224,7 +231,8 @@ export default function Dashboard() {
                     </Link>
                   </td>
                 </tr>
-              ))}
+              ))
+              )}
             </tbody>
           </table>
         </div>
