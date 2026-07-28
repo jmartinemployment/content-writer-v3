@@ -27,47 +27,10 @@ export default function ReviewsPage() {
   }, [clientId, authLoading, user, router]);
 
   const fetchReviews = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await apiClient.get<ContentAsset[]>(
-        `/content-writer/v3/campaigns/${clientId}?includeAssets=true`
-      );
-      const allAssets = (data || []).flatMap(c => c.assets || []);
-      setAssets(allAssets);
-    } catch (err) {
-      console.error('Failed to fetch reviews:', err);
-      setError('Failed to load reviews. Please try again later.');
-      setAssets([]);
-    } finally {
-      setLoading(false);
-    }
+    // TODO: Implement once review endpoints are available
+    setLoading(false);
   };
 
-  const reviews = [
-    {
-      id: '1',
-      assetVersionId: 'av-001',
-      status: 'Pending',
-      accuracyScore: 0,
-      strengthScore: 0,
-      alignmentScore: 0,
-      editorSummary: '',
-    },
-    {
-      id: '2',
-      assetVersionId: 'av-002',
-      status: 'Approved',
-      accuracyScore: 9,
-      strengthScore: 8,
-      alignmentScore: 8,
-      editorSummary: 'Excellent positioning vs competitors. Strong evidence base.',
-      reviewedAt: '2026-07-27T14:30:00Z',
-    },
-  ]);
-
-  const pendingReviews = reviews.filter((r) => r.status === 'Pending');
-  const completedReviews = reviews.filter((r) => r.status !== 'Pending');
 
   const statusColor = (status: string) => {
     switch (status) {

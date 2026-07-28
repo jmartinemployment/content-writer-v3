@@ -48,41 +48,6 @@ export default function ResearchPage() {
     }
   };
 
-  const mockKeywords = [
-    {
-      id: '1',
-      clientId: '1',
-      keyword: 'plumbing services near me',
-      searchVolume: 2400,
-      difficulty: 45,
-      intent: 'local-service',
-      status: 'researched',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: '2',
-      clientId: '1',
-      keyword: 'emergency plumber',
-      searchVolume: 1800,
-      difficulty: 52,
-      intent: 'local-service',
-      status: 'research-queued',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: '3',
-      clientId: '1',
-      keyword: 'water heater replacement cost',
-      searchVolume: 1200,
-      difficulty: 38,
-      intent: 'commercial',
-      status: 'draft',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-  ]);
 
   const [researchRuns] = useState<ResearchRun[]>([
     {

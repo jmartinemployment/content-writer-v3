@@ -43,35 +43,6 @@ export default function AssetsPage() {
     }
   };
 
-  const mockAssets = [
-    {
-      id: '1',
-      campaignId: '1',
-      type: 'pillar',
-      name: 'Complete Guide to Plumbing Services',
-      status: 'draft',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: '2',
-      campaignId: '1',
-      type: 'companion',
-      name: 'Plumbing Repair vs Replacement',
-      status: 'readyForApproval',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: '3',
-      campaignId: '1',
-      type: 'companion',
-      name: 'Common Plumbing Issues',
-      status: 'approved',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-  ]);
 
   const statusBadge = (status: string) => {
     const colors: Record<string, string> = {
@@ -144,8 +115,6 @@ export default function AssetsPage() {
             </div>
           </div>
         ))}
-      </div>
-
         </div>
       )}
 
