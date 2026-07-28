@@ -22,11 +22,7 @@ export default function CampaignsPage() {
       return;
     }
     if (!authLoading && user && !clientId) {
-      // #region agent log
-      fetch('http://127.0.0.1:7348/ingest/f9329de2-14be-4120-a838-fc1db3a1d0c6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d6b04'},body:JSON.stringify({sessionId:'2d6b04',runId:'post-fix',hypothesisId:'H22',location:'campaigns/page.tsx',message:'stopped hang: no clientId',data:{userIdPrefix:String(user.id||'').slice(0,8)},timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
-      setLoading(false);
-      setError('No client is linked to this account yet.');
+      router.push('/login');
       return;
     }
     if (clientId) {

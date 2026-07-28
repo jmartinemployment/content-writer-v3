@@ -24,8 +24,7 @@ export default function ResearchPage() {
       return;
     }
     if (!authLoading && user && !clientId) {
-      setLoading(false);
-      setError('No client is linked to this account yet.');
+      router.push('/login');
       return;
     }
     if (clientId) {

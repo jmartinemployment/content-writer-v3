@@ -53,6 +53,11 @@ export default function Dashboard() {
         ) || [];
       }
 
+      // #region agent log
+      fetch('http://127.0.0.1:7348/ingest/f9329de2-14be-4120-a838-fc1db3a1d0c6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d6b04'},body:JSON.stringify({sessionId:'2d6b04',runId:'post-fix-h23',hypothesisId:'H23',location:'dashboard/page.tsx',message:'dashboard loaded',data:{clientCount:(clientsData||[]).length,campaignCount:(campaignsData||[]).length,workspaceId,userClientId:user?.clientId?String(user.clientId).slice(0,8):null},timestamp:Date.now()})}).catch(()=>{});
+      fetch('/api/agent-debug',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sessionId:'2d6b04',runId:'post-fix-h23',hypothesisId:'H23',message:'dashboard loaded',data:{clientCount:(clientsData||[]).length,campaignCount:(campaignsData||[]).length}})}).catch(()=>{});
+      // #endregion
+
       setWorkspace(mockWorkspace);
       setClients(clientsData || []);
       setCampaigns(campaignsData);
