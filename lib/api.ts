@@ -1,7 +1,6 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { ApiResponse, PaginatedResponse } from './types';
 import { getApiBaseUrl } from './config';
-import { agentDebug } from './agent-debug';
 
 class ApiClient {
   private instance: AxiosInstance;
@@ -32,14 +31,7 @@ class ApiClient {
         // Only force re-login on explicit unauthorized from the API — never on network/CORS failures.
         if (error.response?.status === 401 && typeof window !== 'undefined') {
           const body = error.response.data as { error?: string } | undefined;
-          // #region agent log
-          agentDebug('H14', 'api.ts:401', 'API returned 401', {
-            url: error.config?.url,
-            baseURL: error.config?.baseURL,
-            apiError: body?.error,
-          });
-          // #endregion
-          // Keep token if GeekAPI rejected Bearer as missing API key (misconfigured gate) — surface error instead.
+          // Keep token if GeekAPI rejected Bearer as missing API key (misconfigured gate).
           if (body?.error === 'API key is missing' || body?.error === 'Invalid API key') {
             return Promise.reject(error);
           }

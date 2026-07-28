@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { getApiBaseUrl } from '@/lib/config';
-import { agentDebug } from '@/lib/agent-debug';
 
 export interface User {
   id: string;
@@ -20,6 +19,17 @@ interface UserContextType {
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
+
+const DEFAULT_WORKSPACE_ID = '550e8400-e29b-41d4-a716-446655440001';
+
+function pendingUser(): User {
+  return {
+    id: 'pending',
+    email: '',
+    clientId: '',
+    workspaceId: DEFAULT_WORKSPACE_ID,
+  };
+}
 
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -46,25 +56,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
         },
       });
 
-      // #region agent log
-      agentDebug('H11', 'UserContext.tsx:validateToken', 'auth/me resolved API base', {
-        ok: response.ok,
-        status: response.status,
-        apiHost: (() => { try { return new URL(baseUrl).host; } catch { return baseUrl; } })(),
-        hasEnv: !!process.env.NEXT_PUBLIC_API_URL,
-        tokenParts: token.split('.').length,
-      });
-      // #endregion
-
       if (!response.ok) {
-        // Keep OAuth token; API may be briefly unavailable (CORS/auth) without invalidating login.
+        // Keep OAuth token; API may be briefly unavailable without invalidating login.
         console.warn('auth/me returned', response.status);
-        setUser({
-          id: 'pending',
-          email: '',
-          clientId: '',
-          workspaceId: '550e8400-e29b-41d4-a716-446655440001',
-        });
+        setUser(pendingUser());
         return;
       }
 
@@ -72,18 +67,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setUser(userData);
     } catch (err) {
       console.warn('auth/me unreachable; keeping OAuth token', err);
-      // #region agent log
-      agentDebug('H1', 'UserContext.tsx:validateToken:catch', 'auth/me network/CORS failure', {
-        error: err instanceof Error ? err.message : String(err),
-        apiBase: getApiBaseUrl(),
-      });
-      // #endregion
-      setUser({
-        id: 'pending',
-        email: '',
-        clientId: '',
-        workspaceId: '550e8400-e29b-41d4-a716-446655440001',
-      });
+      setUser(pendingUser());
     } finally {
       setLoading(false);
     }
@@ -102,23 +86,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
         const userData = await response.json();
         setUser(userData);
       } else {
-        // Keep the OAuth token even when the API profile endpoint is unavailable.
         console.warn('auth/me returned', response.status);
-        setUser({
-          id: 'pending',
-          email: '',
-          clientId: '',
-          workspaceId: '550e8400-e29b-41d4-a716-446655440001',
-        });
+        setUser(pendingUser());
       }
     } catch (err) {
       console.warn('auth/me unreachable; keeping OAuth token', err);
-      setUser({
-        id: 'pending',
-        email: '',
-        clientId: '',
-        workspaceId: '550e8400-e29b-41d4-a716-446655440001',
-      });
+      setUser(pendingUser());
     } finally {
       setLoading(false);
     }

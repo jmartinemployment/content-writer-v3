@@ -38,13 +38,6 @@ export function OAuthHandler() {
 
       // Already finished this code (success path or prior attempt) — don't error on remount.
       if (processedAuthCodes.has(code) || wasAuthCodeProcessed(code)) {
-        // #region agent log
-        const { agentDebug } = await import('@/lib/agent-debug');
-        agentDebug('H4', 'oauth-handler.tsx:lock', 'code already processed — resume session', {
-          codeLen: code.length,
-          hasToken: !!localStorage.getItem('auth_token'),
-        });
-        // #endregion
         if (localStorage.getItem('auth_token')) {
           router.replace('/dashboard');
           return;
@@ -61,19 +54,7 @@ export function OAuthHandler() {
         const clientId = 'content-writer-v3';
         const redirectUri = `${window.location.origin}/auth/callback`;
 
-        const { verifier, state: storedState, source } = peekPkceSession();
-
-        // #region agent log
-        const { agentDebug } = await import('@/lib/agent-debug');
-        agentDebug('H4', 'oauth-handler.tsx:callback', 'PKCE peek before token exchange', {
-          hasVerifier: !!verifier,
-          verifierLen: verifier?.length ?? 0,
-          source,
-          hasStoredState: !!storedState,
-          hasCode: !!code,
-          origin: window.location.origin,
-        });
-        // #endregion
+        const { verifier, state: storedState } = peekPkceSession();
 
         if (!verifier) {
           throw new Error('Missing PKCE verifier — restart sign-in from /login');
@@ -115,12 +96,6 @@ export function OAuthHandler() {
         router.replace('/dashboard');
       } catch (err) {
         console.error('OAuth callback error:', err);
-        // #region agent log
-        const { agentDebug } = await import('@/lib/agent-debug');
-        agentDebug('H4', 'oauth-handler.tsx:catch', 'OAuth callback failed', {
-          error: err instanceof Error ? err.message : String(err),
-        });
-        // #endregion
         setError(err instanceof Error ? err.message : 'Authentication failed');
       }
     })();

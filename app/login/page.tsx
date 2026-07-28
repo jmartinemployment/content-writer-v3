@@ -24,19 +24,6 @@ export default function LoginPage() {
     const { verifier, challenge, state } = await createPkceChallenge();
     persistPkceSession(verifier, state);
 
-    // #region agent log
-    const { agentDebug } = await import('@/lib/agent-debug');
-    agentDebug('H2', 'login/page.tsx:handleLogin', 'PKCE persisted before authorize redirect', {
-      verifierLen: verifier.length,
-      challengeLen: challenge.length,
-      origin: window.location.origin,
-      sessionHas: !!sessionStorage.getItem('cw_v3_pkce_verifier'),
-      localHas: !!localStorage.getItem('cw_v3_pkce_verifier'),
-      oauthUrl,
-      redirectUri,
-    });
-    // #endregion
-
     const params = new URLSearchParams({
       client_id: clientId,
       redirect_uri: redirectUri,

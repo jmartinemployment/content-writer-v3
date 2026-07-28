@@ -6,8 +6,6 @@ import { useRouter } from 'next/navigation';
 import { ContentCampaign, Workspace, Client } from '@/lib/types';
 import { apiClient } from '@/lib/api';
 import { useUser } from '@/lib/context/UserContext';
-import { getApiBaseUrl } from '@/lib/config';
-import { agentDebug } from '@/lib/agent-debug';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -42,25 +40,9 @@ export default function Dashboard() {
         updatedAt: new Date().toISOString(),
       };
 
-      // #region agent log
-      agentDebug('H11', 'dashboard/page.tsx:fetch', 'dashboard clients fetch start', {
-        workspaceId,
-        apiBase: getApiBaseUrl(),
-        hasToken: !!localStorage.getItem('auth_token'),
-      });
-      // #endregion
-
       const clientsData = await apiClient.get<Client[]>(
         `/clients?workspaceId=${workspaceId}`
       );
-
-      // #region agent log
-      agentDebug('H11', 'dashboard/page.tsx:clients-ok', 'clients fetch ok', {
-        count: Array.isArray(clientsData) ? clientsData.length : -1,
-        workspaceId,
-        apiBase: getApiBaseUrl(),
-      });
-      // #endregion
 
       // Fetch campaigns for the first client if available
       let campaignsData: ContentCampaign[] = [];
@@ -77,23 +59,12 @@ export default function Dashboard() {
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err);
       const detail = err instanceof Error ? err.message : String(err);
-      const axiosDetail = (err as { response?: { status?: number; data?: unknown }; config?: { baseURL?: string; url?: string } });
-      // #region agent log
-      agentDebug('H11', 'dashboard/page.tsx:catch', 'dashboard fetch failed', {
-        detail,
-        status: axiosDetail.response?.status,
-        baseURL: axiosDetail.config?.baseURL,
-        url: axiosDetail.config?.url,
-        apiBase: getApiBaseUrl(),
-        workspaceId,
-      });
-      // #endregion
+      const axiosDetail = err as { response?: { status?: number } };
       setError(
-        `Failed to load dashboard (${getApiBaseUrl()}): ${detail}` +
+        `Failed to load dashboard: ${detail}` +
           (axiosDetail.response?.status ? ` [HTTP ${axiosDetail.response.status}]` : '')
       );
 
-      // Fallback to minimal mock data for development
       const mockWorkspace: Workspace = {
         id: workspaceId,
         name: 'Demo Workspace',
@@ -141,12 +112,6 @@ export default function Dashboard() {
           </button>
         </div>
       )}
-
-      {/* #region agent log */}
-      <p className="mb-4 text-xs text-slate-400 font-mono" data-testid="api-base-debug">
-        API: {getApiBaseUrl()} · host: {typeof window !== 'undefined' ? window.location.hostname : 'ssr'}
-      </p>
-      {/* #endregion */}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500">
