@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { getApiBaseUrl } from '@/lib/config';
+import { agentDebug } from '@/lib/agent-debug';
 
 export interface User {
   id: string;
@@ -46,7 +47,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
       });
 
       // #region agent log
-      fetch('http://127.0.0.1:7348/ingest/f9329de2-14be-4120-a838-fc1db3a1d0c6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d6b04'},body:JSON.stringify({sessionId:'2d6b04',runId:'post-fix',hypothesisId:'H11',location:'UserContext.tsx:validateToken',message:'auth/me resolved API base',data:{ok:response.ok,status:response.status,apiHost:(()=>{try{return new URL(baseUrl).host}catch{return baseUrl}})(),hostname:typeof window!=='undefined'?window.location.hostname:'ssr',hasEnv:!!process.env.NEXT_PUBLIC_API_URL,tokenParts:token.split('.').length},timestamp:Date.now()})}).catch(()=>{});
+      agentDebug('H11', 'UserContext.tsx:validateToken', 'auth/me resolved API base', {
+        ok: response.ok,
+        status: response.status,
+        apiHost: (() => { try { return new URL(baseUrl).host; } catch { return baseUrl; } })(),
+        hasEnv: !!process.env.NEXT_PUBLIC_API_URL,
+        tokenParts: token.split('.').length,
+      });
       // #endregion
 
       if (!response.ok) {
@@ -66,7 +73,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.warn('auth/me unreachable; keeping OAuth token', err);
       // #region agent log
-      fetch('http://127.0.0.1:7348/ingest/f9329de2-14be-4120-a838-fc1db3a1d0c6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d6b04'},body:JSON.stringify({sessionId:'2d6b04',runId:'post-fix',hypothesisId:'H1',location:'UserContext.tsx:validateToken:catch',message:'auth/me network/CORS failure',data:{error:err instanceof Error?err.message:String(err)},timestamp:Date.now()})}).catch(()=>{});
+      agentDebug('H1', 'UserContext.tsx:validateToken:catch', 'auth/me network/CORS failure', {
+        error: err instanceof Error ? err.message : String(err),
+        apiBase: getApiBaseUrl(),
+      });
       // #endregion
       setUser({
         id: 'pending',

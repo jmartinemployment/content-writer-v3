@@ -7,6 +7,7 @@ import { ContentCampaign, Workspace, Client } from '@/lib/types';
 import { apiClient } from '@/lib/api';
 import { useUser } from '@/lib/context/UserContext';
 import { getApiBaseUrl } from '@/lib/config';
+import { agentDebug } from '@/lib/agent-debug';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -42,7 +43,11 @@ export default function Dashboard() {
       };
 
       // #region agent log
-      fetch('http://127.0.0.1:7348/ingest/f9329de2-14be-4120-a838-fc1db3a1d0c6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d6b04'},body:JSON.stringify({sessionId:'2d6b04',runId:'post-fix',hypothesisId:'H11',location:'dashboard/page.tsx:fetch',message:'dashboard clients fetch start',data:{workspaceId,apiBase:process.env.NEXT_PUBLIC_API_URL||'(runtime-fallback)',hostname:window.location.hostname,hasToken:!!localStorage.getItem('auth_token')},timestamp:Date.now()})}).catch(()=>{});
+      agentDebug('H11', 'dashboard/page.tsx:fetch', 'dashboard clients fetch start', {
+        workspaceId,
+        apiBase: getApiBaseUrl(),
+        hasToken: !!localStorage.getItem('auth_token'),
+      });
       // #endregion
 
       const clientsData = await apiClient.get<Client[]>(
@@ -50,7 +55,11 @@ export default function Dashboard() {
       );
 
       // #region agent log
-      fetch('http://127.0.0.1:7348/ingest/f9329de2-14be-4120-a838-fc1db3a1d0c6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d6b04'},body:JSON.stringify({sessionId:'2d6b04',runId:'post-fix',hypothesisId:'H11',location:'dashboard/page.tsx:clients-ok',message:'clients fetch ok',data:{count:Array.isArray(clientsData)?clientsData.length:-1,workspaceId,apiBase:getApiBaseUrl(),hostname:window.location.hostname},timestamp:Date.now()})}).catch(()=>{});
+      agentDebug('H11', 'dashboard/page.tsx:clients-ok', 'clients fetch ok', {
+        count: Array.isArray(clientsData) ? clientsData.length : -1,
+        workspaceId,
+        apiBase: getApiBaseUrl(),
+      });
       // #endregion
 
       // Fetch campaigns for the first client if available
@@ -70,7 +79,14 @@ export default function Dashboard() {
       const detail = err instanceof Error ? err.message : String(err);
       const axiosDetail = (err as { response?: { status?: number; data?: unknown }; config?: { baseURL?: string; url?: string } });
       // #region agent log
-      fetch('http://127.0.0.1:7348/ingest/f9329de2-14be-4120-a838-fc1db3a1d0c6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d6b04'},body:JSON.stringify({sessionId:'2d6b04',runId:'post-fix',hypothesisId:'H11',location:'dashboard/page.tsx:catch',message:'dashboard fetch failed',data:{detail,status:axiosDetail.response?.status,baseURL:axiosDetail.config?.baseURL,url:axiosDetail.config?.url,apiBase:getApiBaseUrl(),hostname:window.location.hostname,workspaceId},timestamp:Date.now()})}).catch(()=>{});
+      agentDebug('H11', 'dashboard/page.tsx:catch', 'dashboard fetch failed', {
+        detail,
+        status: axiosDetail.response?.status,
+        baseURL: axiosDetail.config?.baseURL,
+        url: axiosDetail.config?.url,
+        apiBase: getApiBaseUrl(),
+        workspaceId,
+      });
       // #endregion
       setError(
         `Failed to load dashboard (${getApiBaseUrl()}): ${detail}` +
@@ -125,6 +141,12 @@ export default function Dashboard() {
           </button>
         </div>
       )}
+
+      {/* #region agent log */}
+      <p className="mb-4 text-xs text-slate-400 font-mono" data-testid="api-base-debug">
+        API: {getApiBaseUrl()} · host: {typeof window !== 'undefined' ? window.location.hostname : 'ssr'}
+      </p>
+      {/* #endregion */}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500">

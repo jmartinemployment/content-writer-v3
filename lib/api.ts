@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { ApiResponse, PaginatedResponse } from './types';
 import { getApiBaseUrl } from './config';
+import { agentDebug } from './agent-debug';
 
 class ApiClient {
   private instance: AxiosInstance;
@@ -32,7 +33,11 @@ class ApiClient {
         if (error.response?.status === 401 && typeof window !== 'undefined') {
           const body = error.response.data as { error?: string } | undefined;
           // #region agent log
-          fetch('http://127.0.0.1:7348/ingest/f9329de2-14be-4120-a838-fc1db3a1d0c6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d6b04'},body:JSON.stringify({sessionId:'2d6b04',runId:'post-fix',hypothesisId:'H14',location:'api.ts:401',message:'API returned 401',data:{url:error.config?.url,baseURL:error.config?.baseURL,apiError:body?.error,hostname:window.location.hostname},timestamp:Date.now()})}).catch(()=>{});
+          agentDebug('H14', 'api.ts:401', 'API returned 401', {
+            url: error.config?.url,
+            baseURL: error.config?.baseURL,
+            apiError: body?.error,
+          });
           // #endregion
           // Keep token if GeekAPI rejected Bearer as missing API key (misconfigured gate) — surface error instead.
           if (body?.error === 'API key is missing' || body?.error === 'Invalid API key') {

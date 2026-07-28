@@ -39,7 +39,11 @@ export function OAuthHandler() {
       // Already finished this code (success path or prior attempt) — don't error on remount.
       if (processedAuthCodes.has(code) || wasAuthCodeProcessed(code)) {
         // #region agent log
-        fetch('http://127.0.0.1:7348/ingest/f9329de2-14be-4120-a838-fc1db3a1d0c6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d6b04'},body:JSON.stringify({sessionId:'2d6b04',runId:'pkce-callback',hypothesisId:'H4',location:'oauth-handler.tsx:lock',message:'code already processed — resume session',data:{codeLen:code.length,hasToken:!!localStorage.getItem('auth_token')},timestamp:Date.now()})}).catch(()=>{});
+        const { agentDebug } = await import('@/lib/agent-debug');
+        agentDebug('H4', 'oauth-handler.tsx:lock', 'code already processed — resume session', {
+          codeLen: code.length,
+          hasToken: !!localStorage.getItem('auth_token'),
+        });
         // #endregion
         if (localStorage.getItem('auth_token')) {
           router.replace('/dashboard');
@@ -60,7 +64,15 @@ export function OAuthHandler() {
         const { verifier, state: storedState, source } = peekPkceSession();
 
         // #region agent log
-        fetch('http://127.0.0.1:7348/ingest/f9329de2-14be-4120-a838-fc1db3a1d0c6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d6b04'},body:JSON.stringify({sessionId:'2d6b04',runId:'pkce-callback',hypothesisId:'H4',location:'oauth-handler.tsx:callback',message:'PKCE peek before token exchange',data:{hasVerifier:!!verifier,verifierLen:verifier?.length??0,source,hasStoredState:!!storedState,hasCode:!!code,origin:window.location.origin},timestamp:Date.now()})}).catch(()=>{});
+        const { agentDebug } = await import('@/lib/agent-debug');
+        agentDebug('H4', 'oauth-handler.tsx:callback', 'PKCE peek before token exchange', {
+          hasVerifier: !!verifier,
+          verifierLen: verifier?.length ?? 0,
+          source,
+          hasStoredState: !!storedState,
+          hasCode: !!code,
+          origin: window.location.origin,
+        });
         // #endregion
 
         if (!verifier) {
@@ -104,7 +116,10 @@ export function OAuthHandler() {
       } catch (err) {
         console.error('OAuth callback error:', err);
         // #region agent log
-        fetch('http://127.0.0.1:7348/ingest/f9329de2-14be-4120-a838-fc1db3a1d0c6',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'2d6b04'},body:JSON.stringify({sessionId:'2d6b04',runId:'pkce-callback',hypothesisId:'H4',location:'oauth-handler.tsx:catch',message:'OAuth callback failed',data:{error:err instanceof Error?err.message:String(err)},timestamp:Date.now()})}).catch(()=>{});
+        const { agentDebug } = await import('@/lib/agent-debug');
+        agentDebug('H4', 'oauth-handler.tsx:catch', 'OAuth callback failed', {
+          error: err instanceof Error ? err.message : String(err),
+        });
         // #endregion
         setError(err instanceof Error ? err.message : 'Authentication failed');
       }
