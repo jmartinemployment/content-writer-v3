@@ -16,7 +16,17 @@ export default function LoginPage() {
 
   const handleLogin = () => {
     const oauthUrl = process.env.NEXT_PUBLIC_GEEK_OAUTH_URL || 'https://auth.geekatyourspot.com';
-    window.location.href = `${oauthUrl}/login?redirect=${encodeURIComponent(window.location.origin + '/login')}`;
+    const clientId = 'content-writer-v3';
+    const redirectUri = `${window.location.origin}/login`;
+
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: 'code',
+      scope: 'openid profile email offline_access',
+    });
+
+    window.location.href = `${oauthUrl}/connect/authorize?${params.toString()}`;
   };
 
   if (loading) {
