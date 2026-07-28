@@ -1,10 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useUser } from '@/lib/context/UserContext';
 
 export default function Navigation() {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, logout } = useUser();
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+  };
 
   const isActive = (href: string) => pathname === href;
 
@@ -119,12 +127,26 @@ export default function Navigation() {
               Analytics
             </Link>
             <div className="flex items-center gap-2">
-              <button className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-md">
-                Settings
-              </button>
-              <button className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-md">
-                Logout
-              </button>
+              {user ? (
+                <>
+                  <span className="text-sm text-slate-600 px-2">
+                    {user.email}
+                  </span>
+                  <button
+                    onClick={handleLogout}
+                    className="px-4 py-2 text-sm font-medium text-slate-700 hover:bg-red-50 hover:text-red-600 rounded-md transition"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <Link
+                  href="/login"
+                  className="px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-md"
+                >
+                  Login
+                </Link>
+              )}
             </div>
           </div>
         </div>

@@ -1,10 +1,48 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { ReconciliationProposal } from '@/lib/types';
+import { apiClient } from '@/lib/api';
+import { useUser } from '@/lib/context/UserContext';
 
 export default function ReconciliationPage() {
-  const [proposals, setProposals] = useState<ReconciliationProposal[]>([
+  const router = useRouter();
+  const { user, loading: authLoading } = useUser();
+  const [proposals, setProposals] = useState<ReconciliationProposal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const clientId = user?.clientId;
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+      return;
+    }
+    if (clientId) {
+      fetchProposals();
+    }
+  }, [clientId, authLoading, user, router]);
+
+  const fetchProposals = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await apiClient.get<ReconciliationProposal[]>(
+        `/content-writer/v3/reconciliation?clientId=${clientId}`
+      );
+      setProposals(data || []);
+    } catch (err) {
+      console.error('Failed to fetch proposals:', err);
+      setError('Failed to load reconciliation proposals. Please try again later.');
+      setProposals([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const mockProposals = [
     {
       id: '1',
       researchRunId: '1',
@@ -41,12 +79,12 @@ export default function ReconciliationPage() {
         source: 'Industry report: Emergency Services Analysis 2025',
         supportLevel: 'ObservedMarketLanguage',
       },
-      status: 'approved',
+      status: 'approved' as const,
       reviewedBy: 'user-123',
       reviewedAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
     },
-  ]);
+  ];
 
   const handleApprove = (id: string) => {
     setProposals(
@@ -78,7 +116,28 @@ export default function ReconciliationPage() {
         <p className="text-slate-600 mt-2">Review proposed pain point updates from research</p>
       </div>
 
-      {/* Pending Proposals */}
+      {loading && (
+        <div className="text-center py-12">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p className="text-slate-600 mt-4">Loading proposals...</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+          <p className="font-medium">{error}</p>
+          <button
+            onClick={fetchProposals}
+            className="mt-2 text-red-600 hover:text-red-700 font-medium underline"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
+      {!loading && !error && (
+        <>
+          {/* Pending Proposals */}
       {pendingProposals.length > 0 && (
         <div className="mb-12">
           <h2 className="text-xl font-semibold text-slate-900 mb-4">
@@ -231,10 +290,12 @@ export default function ReconciliationPage() {
         </div>
       )}
 
-      {proposals.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-slate-600 text-lg">No proposals to review</p>
-        </div>
+          {proposals.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-slate-600 text-lg">No proposals to review</p>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

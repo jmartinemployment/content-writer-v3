@@ -1,6 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { apiClient } from '@/lib/api';
+import { useUser } from '@/lib/context/UserContext';
 
 interface ContentMetrics {
   id: string;
@@ -28,7 +31,45 @@ interface InsightAnalytics {
 }
 
 export default function AnalyticsPage() {
-  const [contentMetrics] = useState<ContentMetrics[]>([
+  const router = useRouter();
+  const { user, loading: authLoading } = useUser();
+  const [contentMetrics, setContentMetrics] = useState<ContentMetrics[]>([]);
+  const [insightAnalytics, setInsightAnalytics] = useState<InsightAnalytics[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const clientId = user?.clientId;
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+      return;
+    }
+    if (clientId) {
+      fetchAnalytics();
+    }
+  }, [clientId, authLoading, user, router]);
+
+  const fetchAnalytics = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await apiClient.get<{ metrics: ContentMetrics[]; insights: InsightAnalytics[] }>(
+        `/content-writer/v3/analytics?clientId=${clientId}`
+      );
+      setContentMetrics(data?.metrics || []);
+      setInsightAnalytics(data?.insights || []);
+    } catch (err) {
+      console.error('Failed to fetch analytics:', err);
+      setError('Failed to load analytics. Please try again later.');
+      setContentMetrics([]);
+      setInsightAnalytics([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const mockContentMetrics = [
     {
       id: '1',
       title: 'Emergency Plumbing: When Minutes Matter',
@@ -51,9 +92,9 @@ export default function AnalyticsPage() {
       bounceRate: 35,
       qualityScore: 6,
     },
-  ]);
+  ];
 
-  const [insightAnalytics] = useState<InsightAnalytics[]>([
+  const mockInsightAnalytics = [
     {
       insightId: '1',
       title: 'Emergency Response Window is Critical',
@@ -90,7 +131,7 @@ export default function AnalyticsPage() {
       weaknesses: ['Too obvious', 'Readers see everywhere', 'No differentiation'],
       shouldRetire: true,
     },
-  ]);
+  ];
 
   const qualityColor = (score: number) => {
     if (score >= 8) return 'text-green-600 bg-green-50';
@@ -125,7 +166,28 @@ export default function AnalyticsPage() {
         <p className="text-slate-600 mt-2">Performance feedback loop: measure, analyze, improve</p>
       </div>
 
-      {/* Content Performance */}
+      {loading && (
+        <div className="text-center py-12">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p className="text-slate-600 mt-4">Loading analytics...</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+          <p className="font-medium">{error}</p>
+          <button
+            onClick={fetchAnalytics}
+            className="mt-2 text-red-600 hover:text-red-700 font-medium underline"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
+      {!loading && !error && (
+        <>
+          {/* Content Performance */}
       <div className="mb-12">
         <h2 className="text-2xl font-bold text-slate-900 mb-6">Content Performance</h2>
         <div className="overflow-x-auto">
@@ -241,6 +303,8 @@ export default function AnalyticsPage() {
           </li>
         </ul>
       </div>
+        </>
+      )}
     </div>
   );
 }

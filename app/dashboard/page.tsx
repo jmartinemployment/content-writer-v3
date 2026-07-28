@@ -2,53 +2,72 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ContentCampaign, Workspace, Client } from '@/lib/types';
+import { apiClient } from '@/lib/api';
+import { useUser } from '@/lib/context/UserContext';
 
 export default function Dashboard() {
+  const router = useRouter();
+  const { user, loading: authLoading } = useUser();
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
   const [campaigns, setCampaigns] = useState<ContentCampaign[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const workspaceId = user?.workspaceId || '1';
 
   useEffect(() => {
-    // Phase 0: Mock data for development
-    // In production, these will be fetched from the API
-    const mockWorkspace: Workspace = {
-      id: '1',
-      name: 'Demo Workspace',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    if (!authLoading && !user) {
+      router.push('/login');
+      return;
+    }
+    if (user) {
+      fetchDashboardData();
+    }
+  }, [authLoading, user, router]);
 
-    const mockClients: Client[] = [
-      {
-        id: '1',
-        workspaceId: '1',
-        name: 'ACME Corp',
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const mockWorkspace: Workspace = {
+        id: workspaceId,
+        name: 'Demo Workspace',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-      },
-    ];
+      };
 
-    const mockCampaigns: ContentCampaign[] = [
-      {
-        id: '1',
-        clientId: '1',
-        name: 'Home Services SEO',
-        keyword: 'plumbing services',
-        status: 'draft',
-        profileVersionId: '1',
+      const clientsData = await apiClient.get<Client[]>(
+        `/content-writer/v3/clients?workspaceId=${workspaceId}`
+      );
+      const campaignsData = await apiClient.get<ContentCampaign[]>(
+        `/content-writer/v3/campaigns?workspaceId=${workspaceId}`
+      );
+
+      setWorkspace(mockWorkspace);
+      setClients(clientsData || []);
+      setCampaigns(campaignsData || []);
+    } catch (err) {
+      console.error('Failed to fetch dashboard data:', err);
+      setError('Failed to load dashboard. Please try again later.');
+
+      // Fallback to minimal mock data for development
+      const mockWorkspace: Workspace = {
+        id: workspaceId,
+        name: 'Demo Workspace',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        rowVersion: 1,
-      },
-    ];
-
-    setWorkspace(mockWorkspace);
-    setClients(mockClients);
-    setCampaigns(mockCampaigns);
-    setLoading(false);
-  }, []);
+      };
+      setWorkspace(mockWorkspace);
+      setClients([]);
+      setCampaigns([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -71,6 +90,18 @@ export default function Dashboard() {
           Manage campaigns, research, and content generation
         </p>
       </div>
+
+      {error && (
+        <div className="mb-8 bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+          <p className="font-medium">{error}</p>
+          <button
+            onClick={fetchDashboardData}
+            className="mt-2 text-red-600 hover:text-red-700 font-medium underline"
+          >
+            Try again
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500">

@@ -1,21 +1,50 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
-
-interface Review {
-  id: string;
-  assetVersionId: string;
-  status: 'Pending' | 'ChangesRequested' | 'Approved' | 'Rejected';
-  accuracyScore: number;
-  strengthScore: number;
-  alignmentScore: number;
-  editorSummary: string;
-  reviewedAt?: string;
-}
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { ContentAsset } from '@/lib/types';
+import { apiClient } from '@/lib/api';
+import { useUser } from '@/lib/context/UserContext';
 
 export default function ReviewsPage() {
-  const [reviews] = useState<Review[]>([
+  const router = useRouter();
+  const { user, loading: authLoading } = useUser();
+  const [assets, setAssets] = useState<ContentAsset[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const clientId = user?.clientId;
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+      return;
+    }
+    if (clientId) {
+      fetchReviews();
+    }
+  }, [clientId, authLoading, user, router]);
+
+  const fetchReviews = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await apiClient.get<ContentAsset[]>(
+        `/content-writer/v3/campaigns/${clientId}?includeAssets=true`
+      );
+      const allAssets = (data || []).flatMap(c => c.assets || []);
+      setAssets(allAssets);
+    } catch (err) {
+      console.error('Failed to fetch reviews:', err);
+      setError('Failed to load reviews. Please try again later.');
+      setAssets([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const reviews = [
     {
       id: '1',
       assetVersionId: 'av-001',
@@ -60,6 +89,31 @@ export default function ReviewsPage() {
     return 'text-slate-400';
   };
 
+  const mockReviews = [
+    {
+      id: '1',
+      assetVersionId: 'av-001',
+      status: 'Pending' as const,
+      accuracyScore: 0,
+      strengthScore: 0,
+      alignmentScore: 0,
+      editorSummary: '',
+    },
+    {
+      id: '2',
+      assetVersionId: 'av-002',
+      status: 'Approved' as const,
+      accuracyScore: 9,
+      strengthScore: 8,
+      alignmentScore: 8,
+      editorSummary: 'Excellent positioning vs competitors. Strong evidence base.',
+      reviewedAt: '2026-07-27T14:30:00Z',
+    },
+  ];
+
+  const pendingReviews = mockReviews.filter((r) => r.status === 'Pending');
+  const completedReviews = mockReviews.filter((r) => r.status !== 'Pending');
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
@@ -67,11 +121,32 @@ export default function ReviewsPage() {
         <p className="text-slate-600 mt-2">Editorial quality gate before publication</p>
       </div>
 
-      {/* Pending Reviews */}
-      <div className="mb-12">
-        <h2 className="text-2xl font-bold text-slate-900 mb-6">
-          Awaiting Review ({pendingReviews.length})
-        </h2>
+      {loading && (
+        <div className="text-center py-12">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p className="text-slate-600 mt-4">Loading reviews...</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+          <p className="font-medium">{error}</p>
+          <button
+            onClick={fetchReviews}
+            className="mt-2 text-red-600 hover:text-red-700 font-medium underline"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
+      {!loading && !error && (
+        <>
+          {/* Pending Reviews */}
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold text-slate-900 mb-6">
+              Awaiting Review ({pendingReviews.length})
+            </h2>
         <div className="space-y-4">
           {pendingReviews.length === 0 ? (
             <p className="text-slate-600">No pending reviews</p>
@@ -151,6 +226,8 @@ export default function ReviewsPage() {
             ))}
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

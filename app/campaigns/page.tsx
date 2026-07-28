@@ -1,34 +1,47 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ContentCampaign } from '@/lib/types';
+import { apiClient } from '@/lib/api';
+import { useUser } from '@/lib/context/UserContext';
 
 export default function CampaignsPage() {
-  const [campaigns] = useState<ContentCampaign[]>([
-    {
-      id: '1',
-      clientId: '1',
-      name: 'Home Services SEO - Plumbing',
-      keyword: 'plumbing services near me',
-      status: 'draft',
-      profileVersionId: '1',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      rowVersion: 1,
-    },
-    {
-      id: '2',
-      clientId: '1',
-      name: 'Water Heater Replacement',
-      keyword: 'water heater replacement cost',
-      status: 'research',
-      profileVersionId: '1',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      rowVersion: 1,
-    },
-  ]);
+  const router = useRouter();
+  const { user, loading: authLoading } = useUser();
+  const [campaigns, setCampaigns] = useState<ContentCampaign[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const clientId = user?.clientId;
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+      return;
+    }
+    if (clientId) {
+      fetchCampaigns();
+    }
+  }, [clientId, authLoading, user, router]);
+
+  const fetchCampaigns = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await apiClient.get<ContentCampaign[]>(
+        `/content-writer/v3/campaigns?clientId=${clientId}`
+      );
+      setCampaigns(data || []);
+    } catch (err) {
+      console.error('Failed to fetch campaigns:', err);
+      setError('Failed to load campaigns. Please try again later.');
+      setCampaigns([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const statusBadgeColor = (status: string) => {
     switch (status) {
@@ -62,31 +75,52 @@ export default function CampaignsPage() {
         </Link>
       </div>
 
-      <div className="grid gap-6">
-        {campaigns.map((campaign) => (
-          <Link
-            key={campaign.id}
-            href={`/campaigns/${campaign.id}`}
-            className="bg-white rounded-lg shadow-sm p-6 border border-slate-200 hover:shadow-md hover:border-slate-300 transition"
-          >
-            <div className="flex justify-between items-start">
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-slate-900">{campaign.name}</h3>
-                <p className="text-slate-600 mt-1">Keyword: {campaign.keyword}</p>
-              </div>
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusBadgeColor(campaign.status)}`}>
-                {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}
-              </span>
-            </div>
-            <div className="mt-4 flex gap-6 text-sm text-slate-500">
-              <span>Created {new Date(campaign.createdAt).toLocaleDateString()}</span>
-              <span>Updated {new Date(campaign.updatedAt).toLocaleDateString()}</span>
-            </div>
-          </Link>
-        ))}
-      </div>
+      {loading && (
+        <div className="text-center py-12">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p className="text-slate-600 mt-4">Loading campaigns...</p>
+        </div>
+      )}
 
-      {campaigns.length === 0 && (
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+          <p className="font-medium">{error}</p>
+          <button
+            onClick={fetchCampaigns}
+            className="mt-2 text-red-600 hover:text-red-700 font-medium underline"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
+      {!loading && !error && (
+        <div className="grid gap-6">
+          {campaigns.map((campaign) => (
+            <Link
+              key={campaign.id}
+              href={`/campaigns/${campaign.id}`}
+              className="bg-white rounded-lg shadow-sm p-6 border border-slate-200 hover:shadow-md hover:border-slate-300 transition"
+            >
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-slate-900">{campaign.name}</h3>
+                  <p className="text-slate-600 mt-1">Keyword: {campaign.keyword}</p>
+                </div>
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusBadgeColor(campaign.status)}`}>
+                  {campaign.status.charAt(0).toUpperCase() + campaign.status.slice(1)}
+                </span>
+              </div>
+              <div className="mt-4 flex gap-6 text-sm text-slate-500">
+                <span>Created {new Date(campaign.createdAt).toLocaleDateString()}</span>
+                <span>Updated {new Date(campaign.updatedAt).toLocaleDateString()}</span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {!loading && !error && campaigns.length === 0 && (
         <div className="text-center py-12">
           <p className="text-slate-600 text-lg">No campaigns yet</p>
           <Link

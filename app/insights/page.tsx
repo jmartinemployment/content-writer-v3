@@ -1,24 +1,48 @@
 'use client';
 
-import Link from 'next/link';
-import { useState } from 'react';
-
-interface Insight {
-  id: string;
-  title: string;
-  description: string;
-  whyItMatters: string;
-  whatPeopleGetWrong: string;
-  difficulty: number; // 1-10
-  importance: number; // 1-10
-  rankScore: number;
-  orderIndex: number;
-  includeInOutline: boolean;
-  reasonForSkipping?: string;
-}
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { PainPoint } from '@/lib/types';
+import { apiClient } from '@/lib/api';
+import { useUser } from '@/lib/context/UserContext';
 
 export default function InsightsPage() {
-  const [insights] = useState<Insight[]>([
+  const router = useRouter();
+  const { user, loading: authLoading } = useUser();
+  const [insights, setInsights] = useState<PainPoint[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const clientId = user?.clientId;
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+      return;
+    }
+    if (clientId) {
+      fetchInsights();
+    }
+  }, [clientId, authLoading, user, router]);
+
+  const fetchInsights = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await apiClient.get<PainPoint[]>(
+        `/content-writer/v3/pain-points?clientId=${clientId}`
+      );
+      setInsights(data || []);
+    } catch (err) {
+      console.error('Failed to fetch insights:', err);
+      setError('Failed to load insights. Please try again later.');
+      setInsights([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const mockInsights = [
     {
       id: '1',
       title: 'Emergency Response Window is Hours, Not Days',

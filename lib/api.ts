@@ -38,23 +38,49 @@ class ApiClient {
   }
 
   async get<T>(url: string, config?: any) {
-    return this.instance.get<ApiResponse<T>>(url, config).then((res) => res.data.data);
+    return this.instance.get<ApiResponse<T> | T>(url, config).then((res) => {
+      // Handle both wrapped (ApiResponse<T>) and unwrapped (T) responses
+      if (res.data && typeof res.data === 'object' && 'data' in res.data) {
+        return (res.data as ApiResponse<T>).data;
+      }
+      return res.data as T;
+    });
   }
 
   async post<T>(url: string, data?: any, config?: any) {
-    return this.instance.post<ApiResponse<T>>(url, data, config).then((res) => res.data.data);
+    return this.instance.post<ApiResponse<T> | T>(url, data, config).then((res) => {
+      if (res.data && typeof res.data === 'object' && 'data' in res.data) {
+        return (res.data as ApiResponse<T>).data;
+      }
+      return res.data as T;
+    });
   }
 
   async patch<T>(url: string, data?: any, config?: any) {
-    return this.instance.patch<ApiResponse<T>>(url, data, config).then((res) => res.data.data);
+    return this.instance.patch<ApiResponse<T> | T>(url, data, config).then((res) => {
+      if (res.data && typeof res.data === 'object' && 'data' in res.data) {
+        return (res.data as ApiResponse<T>).data;
+      }
+      return res.data as T;
+    });
   }
 
   async put<T>(url: string, data?: any, config?: any) {
-    return this.instance.put<ApiResponse<T>>(url, data, config).then((res) => res.data.data);
+    return this.instance.put<ApiResponse<T> | T>(url, data, config).then((res) => {
+      if (res.data && typeof res.data === 'object' && 'data' in res.data) {
+        return (res.data as ApiResponse<T>).data;
+      }
+      return res.data as T;
+    });
   }
 
   async delete<T>(url: string, config?: any) {
-    return this.instance.delete<ApiResponse<T>>(url, config).then((res) => res.data.data);
+    return this.instance.delete<ApiResponse<T> | T>(url, config).then((res) => {
+      if (res.data && typeof res.data === 'object' && 'data' in res.data) {
+        return (res.data as ApiResponse<T>).data;
+      }
+      return res.data as T;
+    });
   }
 
   getAxiosInstance() {

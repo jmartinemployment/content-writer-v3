@@ -1,52 +1,47 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { PainPoint } from '@/lib/types';
+import { apiClient } from '@/lib/api';
+import { useUser } from '@/lib/context/UserContext';
 
 export default function PainPointsPage() {
-  const [painPoints] = useState<PainPoint[]>([
-    {
-      id: '1',
-      clientId: '1',
-      name: 'Emergency Plumbing Crisis',
-      description: 'Burst pipes and sewage backups require immediate attention',
-      readerSymptom: 'Water flooding from pipes or fixture damage',
-      costOfInaction: '$500-2000+ water damage repair costs within hours',
-      offerTerminology: '24/7 emergency plumbing response',
-      objections: ['Too expensive', 'Can DIY temporary fix', 'Unsure if real emergency'],
-      confidence: 95,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: '2',
-      clientId: '1',
-      name: 'Water Heater Failure',
-      description: 'Old or broken water heaters need replacement decision',
-      readerSymptom: 'No hot water or inconsistent temperature',
-      costOfInaction: '$500-3000 replacement delay + daily inconvenience',
-      offerTerminology: 'Water heater replacement and installation',
-      objections: ['Repair vs replace confusion', 'Cost uncertainty', 'Unsure about size needed'],
-      confidence: 87,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: '3',
-      clientId: '1',
-      name: 'Slow Drain Issues',
-      description: 'Gradual drainage problems indicating clogs',
-      readerSymptom: 'Water drains slowly or backs up',
-      costOfInaction: '$50-300 drain cleaning or $1000+ pipe damage',
-      offerTerminology: 'Drain cleaning and clog removal',
-      objections: ['Can try DIY plunger/drain cleaner first', 'Cost for simple issue seems high'],
-      confidence: 72,
-      staleSince: new Date(Date.now() - 2592000000).toISOString(), // 30 days ago
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-  ]);
+  const router = useRouter();
+  const { user, loading: authLoading } = useUser();
+  const [painPoints, setPainPoints] = useState<PainPoint[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const clientId = user?.clientId;
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+      return;
+    }
+    if (clientId) {
+      fetchPainPoints();
+    }
+  }, [clientId, authLoading, user, router]);
+
+  const fetchPainPoints = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await apiClient.get<PainPoint[]>(
+        `/content-writer/v3/pain-points?clientId=${clientId}`
+      );
+      setPainPoints(data || []);
+    } catch (err) {
+      console.error('Failed to fetch pain points:', err);
+      setError('Failed to load pain points. Please try again later.');
+      setPainPoints([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const confidenceColor = (confidence: number) => {
     if (confidence >= 90) return 'bg-green-100 text-green-800';
@@ -62,8 +57,28 @@ export default function PainPointsPage() {
         <p className="text-slate-600 mt-2">Client pain points with evidence-linked research</p>
       </div>
 
-      <div className="space-y-6">
-        {painPoints.map((pp) => (
+      {loading && (
+        <div className="text-center py-12">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p className="text-slate-600 mt-4">Loading pain points...</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+          <p className="font-medium">{error}</p>
+          <button
+            onClick={fetchPainPoints}
+            className="mt-2 text-red-600 hover:text-red-700 font-medium underline"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
+      {!loading && !error && (
+        <div className="space-y-6">
+          {painPoints.map((pp) => (
           <Link
             key={pp.id}
             href={`/pain-points/${pp.id}`}
@@ -119,10 +134,11 @@ export default function PainPointsPage() {
               </button>
             </div>
           </Link>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
-      {painPoints.length === 0 && (
+      {!loading && !error && painPoints.length === 0 && (
         <div className="text-center py-12">
           <p className="text-slate-600 text-lg">No pain points yet</p>
           <p className="text-slate-500 mt-2">Run research to discover client pain points</p>

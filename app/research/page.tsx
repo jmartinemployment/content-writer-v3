@@ -1,13 +1,54 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ResearchRun, KeywordCandidate } from '@/lib/types';
+import { apiClient } from '@/lib/api';
+import { useUser } from '@/lib/context/UserContext';
 
 export default function ResearchPage() {
+  const router = useRouter();
+  const { user, loading: authLoading } = useUser();
   const [activeTab, setActiveTab] = useState<'keywords' | 'runs'>('keywords');
+  const [keywords, setKeywords] = useState<KeywordCandidate[]>([]);
+  const [runs, setRuns] = useState<ResearchRun[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const [keywords] = useState<KeywordCandidate[]>([
+  const clientId = user?.clientId;
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+      return;
+    }
+    if (clientId) {
+      fetchData();
+    }
+  }, [clientId, authLoading, user, router]);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const keywordData = await apiClient.get<KeywordCandidate[]>(
+        `/content-writer/v3/keywords?clientId=${clientId}`
+      );
+      setKeywords(keywordData || []);
+      // TODO: Fetch research runs when endpoint available
+      setRuns([]);
+    } catch (err) {
+      console.error('Failed to fetch research data:', err);
+      setError('Failed to load research data. Please try again later.');
+      setKeywords([]);
+      setRuns([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const mockKeywords = [
     {
       id: '1',
       clientId: '1',

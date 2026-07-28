@@ -1,38 +1,47 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { StrategyBrief } from '@/lib/types';
+import { apiClient } from '@/lib/api';
+import { useUser } from '@/lib/context/UserContext';
 
 export default function StrategyBriefsPage() {
-  const [briefs] = useState<StrategyBrief[]>([
-    {
-      id: '1',
-      campaignId: '1',
-      painPointId: '1',
-      audienceProfile: 'Homeowners age 35-55',
-      buyingStage: 'research',
-      angle: 'Emergency preparedness through professional help',
-      callToAction: 'Schedule your inspection today',
-      status: 'draft',
-      rowVersion: 1,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: '2',
-      campaignId: '1',
-      painPointId: '2',
-      audienceProfile: 'Homeowners with aging infrastructure',
-      buyingStage: 'decision',
-      angle: 'Long-term value and reliability',
-      callToAction: 'Request a free estimate',
-      status: 'approved',
-      rowVersion: 1,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-  ]);
+  const router = useRouter();
+  const { user, loading: authLoading } = useUser();
+  const [briefs, setBriefs] = useState<StrategyBrief[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const campaignId = '550e8400-e29b-41d4-a716-446655440000'; // TODO: Get from route params
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+      return;
+    }
+    if (campaignId) {
+      fetchBriefs();
+    }
+  }, [campaignId, authLoading, user, router]);
+
+  const fetchBriefs = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await apiClient.get<StrategyBrief[]>(
+        `/content-writer/v3/strategy-briefs?campaignId=${campaignId}`
+      );
+      setBriefs(data || []);
+    } catch (err) {
+      console.error('Failed to fetch briefs:', err);
+      setError('Failed to load strategy briefs. Please try again later.');
+      setBriefs([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const statusColor = (status: string) => {
     switch (status) {
@@ -60,8 +69,28 @@ export default function StrategyBriefsPage() {
         </Link>
       </div>
 
-      <div className="space-y-4">
-        {briefs.map((brief) => (
+      {loading && (
+        <div className="text-center py-12">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p className="text-slate-600 mt-4">Loading strategy briefs...</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+          <p className="font-medium">{error}</p>
+          <button
+            onClick={fetchBriefs}
+            className="mt-2 text-red-600 hover:text-red-700 font-medium underline"
+          >
+            Try again
+          </button>
+        </div>
+      )}
+
+      {!loading && !error && (
+        <div className="space-y-4">
+          {briefs.map((brief) => (
           <Link
             key={brief.id}
             href={`/strategy-briefs/${brief.id}`}
@@ -89,10 +118,11 @@ export default function StrategyBriefsPage() {
               </span>
             </div>
           </Link>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
-      {briefs.length === 0 && (
+      {!loading && !error && briefs.length === 0 && (
         <div className="text-center py-12">
           <p className="text-slate-600 text-lg">No strategy briefs yet</p>
         </div>
