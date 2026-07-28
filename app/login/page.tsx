@@ -17,7 +17,7 @@ export default function LoginPage() {
   const handleLogin = () => {
     const oauthUrl = process.env.NEXT_PUBLIC_GEEK_OAUTH_URL || 'https://auth.geekatyourspot.com';
     const clientId = 'content-writer-v3';
-    const redirectUri = `${window.location.origin}/login`;
+    const redirectUri = `${window.location.origin}/auth/callback`;
 
     const params = new URLSearchParams({
       client_id: clientId,
